@@ -3,9 +3,9 @@ site_description: A Java application to identify PII in text and various file fo
 repo_url: https://github.com/philterd/phileas
 theme:
   name: material
+  locale: en
   palette:
-    primary: indigo
-    accent: indigo
+    primary: red
 nav:
   - Home: index.md
   - Getting Started: getting-started.md

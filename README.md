@@ -39,4 +39,6 @@ For more examples and detailed usage, please refer to the [Usage Guide](docs/doc
 
 ## License
 
+Copyright 2026 Philterd, LLC.
+
 This project is licensed under the Apache License 2.0.
