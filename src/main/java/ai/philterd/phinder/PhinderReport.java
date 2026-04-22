@@ -27,7 +27,39 @@ public class PhinderReport {
     private final Map<String, Long> perFileWordCounts = new HashMap<>();
     private final Map<String, Integer> aggregateCounts = new HashMap<>();
     private final Map<String, Double> weights = new HashMap<>();
+    private final Map<String, ConfidenceStats> aggregateConfidence = new HashMap<>();
+    private final Map<String, Map<String, ConfidenceStats>> perFileConfidence = new HashMap<>();
     private int skippedFiles = 0;
+
+    public static class ConfidenceStats {
+        private double min = Double.MAX_VALUE;
+        private double max = -Double.MAX_VALUE;
+        private double sum = 0;
+        private int count = 0;
+
+        public void add(double confidence) {
+            min = Math.min(min, confidence);
+            max = Math.max(max, confidence);
+            sum += confidence;
+            count++;
+        }
+
+        public double getMin() {
+            return count == 0 ? 0 : min;
+        }
+
+        public double getMax() {
+            return count == 0 ? 0 : max;
+        }
+
+        public double getAverage() {
+            return count == 0 ? 0 : sum / count;
+        }
+
+        public int getCount() {
+            return count;
+        }
+    }
 
     public PhinderReport() {
         // Default weight is 1.0 for all types
@@ -35,12 +67,24 @@ public class PhinderReport {
 
     public void addFileResult(String filePath, List<Span> spans, long wordCount) {
         Map<String, Integer> counts = new HashMap<>();
+        Map<String, ConfidenceStats> fileConfStats = new HashMap<>();
+
         for (Span span : spans) {
             String type = span.getFilterType().getType();
+            double confidence = span.getConfidence();
+
             counts.put(type, counts.getOrDefault(type, 0) + 1);
             aggregateCounts.put(type, aggregateCounts.getOrDefault(type, 0) + 1);
+
+            // Update aggregate confidence stats
+            aggregateConfidence.computeIfAbsent(type, k -> new ConfidenceStats()).add(confidence);
+
+            // Update per-file confidence stats
+            fileConfStats.computeIfAbsent(type, k -> new ConfidenceStats()).add(confidence);
         }
+
         perFileCounts.put(filePath, counts);
+        perFileConfidence.put(filePath, fileConfStats);
         perFileWordCounts.put(filePath, wordCount);
     }
 
@@ -85,6 +129,14 @@ public class PhinderReport {
 
     public Map<String, Map<String, Integer>> getPerFileCounts() {
         return perFileCounts;
+    }
+
+    public Map<String, ConfidenceStats> getAggregateConfidence() {
+        return aggregateConfidence;
+    }
+
+    public Map<String, Map<String, ConfidenceStats>> getPerFileConfidence() {
+        return perFileConfidence;
     }
 
     public void setWeight(String piiType, double weight) {

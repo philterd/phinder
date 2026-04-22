@@ -272,16 +272,18 @@ public class ReportBuilder {
         sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Count</th>\n");
         sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Weight</th>\n");
         sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Magnitude</th>\n");
+        sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Confidence Interval</th>\n");
         sb.append("                        </tr>\n");
         sb.append("                    </thead>\n");
         sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
 
         Map<String, Integer> aggregate = report.getAggregateCounts();
         Map<String, Double> weights = report.getWeights();
+        Map<String, PhinderReport.ConfidenceStats> aggregateConfidence = report.getAggregateConfidence();
 
         if (aggregate.isEmpty()) {
             sb.append("                        <tr>\n");
-            sb.append("                            <td colspan=\"4\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
+            sb.append("                            <td colspan=\"5\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
             sb.append("                        </tr>\n");
         } else {
             List<String> sortedTypes = new ArrayList<>(aggregate.keySet());
@@ -291,12 +293,16 @@ public class ReportBuilder {
                 int count = aggregate.get(type);
                 double weight = weights.getOrDefault(type, 1.0);
                 double magnitude = count * weight;
+                PhinderReport.ConfidenceStats stats = aggregateConfidence.get(type);
+                String confidenceInterval = stats != null ?
+                        String.format("%.2f - %.2f (avg: %.2f)", stats.getMin(), stats.getMax(), stats.getAverage()) : "N/A";
 
                 sb.append("                        <tr>\n");
                 sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900\">%s</td>\n", type));
                 sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%d</td>\n", count));
                 sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%.2f</td>\n", weight));
                 sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-blue-600\">%.2f</td>\n", magnitude));
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%s</td>\n", confidenceInterval));
                 sb.append("                        </tr>\n");
             }
         }
@@ -331,27 +337,34 @@ public class ReportBuilder {
             sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Count</th>\n");
             sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Weight</th>\n");
             sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Magnitude</th>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Confidence Interval</th>\n");
             sb.append("                        </tr>\n");
             sb.append("                    </thead>\n");
             sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
 
             if (counts.isEmpty()) {
                 sb.append("                        <tr>\n");
-                sb.append("                            <td colspan=\"4\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
+                sb.append("                            <td colspan=\"5\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
                 sb.append("                        </tr>\n");
             } else {
                 List<String> sortedTypes = new ArrayList<>(counts.keySet());
                 Collections.sort(sortedTypes);
+                Map<String, PhinderReport.ConfidenceStats> fileConfStats = report.getPerFileConfidence().get(fileName);
 
                 for (String type : sortedTypes) {
                     int count = counts.get(type);
                     double weight = weights.getOrDefault(type, 1.0);
                     double magnitude = count * weight;
+                    PhinderReport.ConfidenceStats stats = fileConfStats != null ? fileConfStats.get(type) : null;
+                    String confidenceInterval = stats != null ?
+                            String.format("%.2f - %.2f (avg: %.2f)", stats.getMin(), stats.getMax(), stats.getAverage()) : "N/A";
+
                     sb.append("                        <tr>\n");
                     sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900\">%s</td>\n", type));
                     sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%d</td>\n", count));
                     sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%.2f</td>\n", weight));
                     sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-blue-600\">%.2f</td>\n", magnitude));
+                    sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%s</td>\n", confidenceInterval));
                     sb.append("                        </tr>\n");
                 }
             }

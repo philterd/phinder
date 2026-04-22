@@ -2,6 +2,8 @@
 
 A Java application that uses the [Phileas](https://github.com/philterd/phileas) library to identify PII (Personally Identifiable Information) in text across a wide variety of file formats.
 
+Types of PII are scored by magnitude, density, and confidence. The goal of Phinder is to provide a comprehensive analysis of PII to help you take the next step to protect it.
+
 ![Phinder](docs/report.png)
 
 ## Documentation

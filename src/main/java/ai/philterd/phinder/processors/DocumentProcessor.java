@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.List;
 
 public interface DocumentProcessor {
+
     String extractText(File file) throws IOException;
 
     default List<Span> process(File file, Policy policy, Phinder phinder) throws Exception {
@@ -55,4 +56,5 @@ public interface DocumentProcessor {
     }
 
     boolean supports(File file);
+
 }

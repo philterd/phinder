@@ -69,6 +69,8 @@ public class ReportBuilderTest {
         assertTrue(content.contains("<!DOCTYPE html>"));
         assertTrue(content.contains("email-address"));
         assertTrue(content.contains("https://www.philterd.ai"));
+        assertTrue(content.contains("Confidence Interval"));
+        assertTrue(content.contains("0.90 - 0.90 (avg: 0.90)"));
     }
 
     @Test
