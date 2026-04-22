@@ -58,7 +58,7 @@ public class ReportBuilder {
         System.out.println("Report generated: " + reportFile.getAbsolutePath());
     }
 
-    private void generateTextReport(PhinderReport report, File file) throws Exception {
+    public static void generateTextReport(PhinderReport report, File file) throws Exception {
         StringBuilder sb = new StringBuilder();
         sb.append("Phinder PII Report\n");
         sb.append("==================\n\n");
@@ -89,7 +89,7 @@ public class ReportBuilder {
         FileUtils.writeStringToFile(file, sb.toString(), StandardCharsets.UTF_8);
     }
 
-    private void generateJsonReport(PhinderReport report, File file) throws Exception {
+    public static void generateJsonReport(PhinderReport report, File file) throws Exception {
         Map<String, Object> data = new HashMap<>();
         data.put("aggregateMagnitudeScore", report.getAggregateMagnitudeScore());
         data.put("aggregateDensityScore", report.getAggregateDensityScore());
@@ -112,7 +112,7 @@ public class ReportBuilder {
         FileUtils.writeStringToFile(file, json, StandardCharsets.UTF_8);
     }
 
-    private void generatePdfReport(PhinderReport report, File file) throws Exception {
+    public static void generatePdfReport(PhinderReport report, File file) throws Exception {
         try (PDDocument document = new PDDocument()) {
             PDPage page = new PDPage();
             document.addPage(page);
@@ -226,7 +226,7 @@ public class ReportBuilder {
         }
     }
 
-    private void generateHtmlReport(PhinderReport report, File file) throws Exception {
+    public static void generateHtmlReport(PhinderReport report, File file) throws Exception {
         StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html>\n");
         sb.append("<html lang=\"en\">\n");

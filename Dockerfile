@@ -20,4 +20,4 @@ RUN apt-get update && apt-get install -y \
 COPY --from=build /app/target/phinder-1.0.0-SNAPSHOT.jar phinder.jar
 # Since Phileas might need some local storage or cache, we ensure /tmp is writable
 VOLUME /tmp
-ENTRYPOINT ["java", "-cp", "phinder.jar", "ai.philterd.phinder.Phinder"]
+ENTRYPOINT ["java", "-jar", "phinder.jar"]
