@@ -71,6 +71,8 @@ public class ReportBuilderTest {
         assertTrue(content.contains("https://www.philterd.ai"));
         assertTrue(content.contains("Confidence Interval"));
         assertTrue(content.contains("0.90 - 0.90 (avg: 0.90)"));
+        assertTrue(content.contains("Best Candidates for Redaction Testing"), "Should contain best candidates section");
+        assertTrue(content.contains("PII Variety"), "Should contain variety column");
     }
 
     @Test

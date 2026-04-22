@@ -261,6 +261,52 @@ public class ReportBuilder {
         sb.append("            </div>\n");
         sb.append("        </section>\n");
 
+        // Best Candidates for Redaction Testing
+        List<String> files = new ArrayList<>(report.getPerFileCounts().keySet());
+        if (!files.isEmpty()) {
+            // Sort by Magnitude Score (desc) then by Variety (desc) then by Density Score (desc)
+            files.sort((f1, f2) -> {
+                int compare = Double.compare(report.getFileMagnitudeScore(f2), report.getFileMagnitudeScore(f1));
+                if (compare == 0) {
+                    compare = Integer.compare(report.getPerFileCounts().get(f2).size(), report.getPerFileCounts().get(f1).size());
+                }
+                if (compare == 0) {
+                    compare = Double.compare(report.getFileDensityScore(f2), report.getFileDensityScore(f1));
+                }
+                return compare;
+            });
+
+            List<String> bestCandidates = files.subList(0, Math.min(20, files.size()));
+
+            sb.append("        <section class=\"mb-12\">\n");
+            sb.append("            <h2 class=\"text-2xl font-bold text-gray-800 mb-6\">Best Candidates for Redaction Testing</h2>\n");
+            sb.append("            <div class=\"bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden\">\n");
+            sb.append("                <table class=\"min-w-full divide-y divide-gray-200\">\n");
+            sb.append("                    <thead class=\"bg-gray-50\">\n");
+            sb.append("                        <tr>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">File Name</th>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">PII Variety</th>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Magnitude Score</th>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Density Score</th>\n");
+            sb.append("                        </tr>\n");
+            sb.append("                    </thead>\n");
+            sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
+
+            for (String fileName : bestCandidates) {
+                sb.append("                        <tr>\n");
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900 break-all\">%s</td>\n", fileName));
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%d</td>\n", report.getPerFileCounts().get(fileName).size()));
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-blue-600 font-semibold\">%.2f</td>\n", report.getFileMagnitudeScore(fileName)));
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-green-600 font-semibold\">%.4f</td>\n", report.getFileDensityScore(fileName)));
+                sb.append("                        </tr>\n");
+            }
+
+            sb.append("                    </tbody>\n");
+            sb.append("                </table>\n");
+            sb.append("            </div>\n");
+            sb.append("        </section>\n");
+        }
+
         // Aggregate Counts Table
         sb.append("        <section class=\"mb-12\">\n");
         sb.append("            <h2 class=\"text-2xl font-bold text-gray-800 mb-6\">Aggregate PII Counts</h2>\n");

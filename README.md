@@ -2,13 +2,13 @@
 
 A Java application that uses the [Phileas](https://github.com/philterd/phileas) library to identify PII (Personally Identifiable Information) in text across a wide variety of file formats.
 
-Types of PII are scored by magnitude, density, and confidence. The goal of Phinder is to provide a comprehensive analysis of PII to help you take the next step to protect it.
+Types of PII are scored by magnitude, density, and confidence. A list of files suggested for redaction testing will be generated. 
+
+The goal of Phinder is to provide a comprehensive analysis of PII to help you take the next step to redact it with [Philter](https://github.com/philterd/philter).
 
 ![Phinder](docs/report.png)
 
 ## Documentation
-
-Comprehensive documentation can be found in the `docs/` directory or can be hosted using MkDocs.
 
 - [Getting Started](docs/docs/getting-started.md)
 - [Supported File Types](docs/docs/supported-file-types.md)
@@ -25,7 +25,7 @@ Comprehensive documentation can be found in the `docs/` directory or can be host
 mvn clean install
 ```
 
-### Run the application
+### Run Phinder
 
 ```bash
 java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt

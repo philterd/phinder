@@ -21,10 +21,12 @@ import ai.philterd.phileas.model.filtering.TextFilterResult;
 import ai.philterd.phileas.policy.Identifiers;
 import ai.philterd.phileas.policy.Policy;
 import ai.philterd.phileas.policy.filters.EmailAddress;
+import ai.philterd.phileas.policy.filters.Ssn;
 import ai.philterd.phileas.services.context.DefaultContextService;
 import ai.philterd.phileas.services.disambiguation.vector.InMemoryVectorService;
 import ai.philterd.phileas.services.filters.filtering.PlainTextFilterService;
 import ai.philterd.phileas.services.strategies.rules.EmailAddressFilterStrategy;
+import ai.philterd.phileas.services.strategies.rules.SsnFilterStrategy;
 import ai.philterd.phinder.processors.*;
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
@@ -268,8 +270,21 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
         }
 
         try {
-            List<Span> spans = processor.process(inputFile, policy, this);
-            long wordCount = processor.getWordCount(inputFile);
+            List<Span> spans;
+            long wordCount;
+
+            if (processor instanceof LogProcessor || processor instanceof CsvProcessor) {
+                spans = processor.process(inputFile, policy, this);
+                wordCount = processor.getWordCount(inputFile);
+            } else {
+                String text = processor.extractText(inputFile);
+                if (text == null) text = "";
+
+                String combinedText = inputFile.getName() + "\n" + text;
+                spans = findPii(combinedText, policy);
+                wordCount = processor.countWords(text);
+            }
+
             report.addFileResult(inputFile.getAbsolutePath(), spans, wordCount);
 
             System.out.println("PII found in " + inputFile.getName() + ":");
@@ -297,17 +312,28 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
     }
 
     public Policy createDefaultPolicy() {
+
+        // TODO: Build out the full policy.
+
         Policy policy = new Policy();
         Identifiers identifiers = new Identifiers();
 
         EmailAddress emailAddress = new EmailAddress();
-        EmailAddressFilterStrategy strategy = new EmailAddressFilterStrategy();
-        strategy.setStrategy("REDACT");
-        emailAddress.setEmailAddressFilterStrategies(Collections.singletonList(strategy));
+        EmailAddressFilterStrategy emailAddressFilterStrategy = new EmailAddressFilterStrategy();
+        emailAddressFilterStrategy.setStrategy("REDACT");
+        emailAddress.setEmailAddressFilterStrategies(Collections.singletonList(emailAddressFilterStrategy));
         identifiers.setEmailAddress(emailAddress);
 
+        Ssn ssn = new Ssn();
+        SsnFilterStrategy ssnFilterStrategy = new SsnFilterStrategy();
+        ssnFilterStrategy.setStrategy("REDACT");
+        ssn.setSsnFilterStrategies(Collections.singletonList(ssnFilterStrategy));
+        identifiers.setSsn(ssn);
+
         policy.setIdentifiers(identifiers);
+
         return policy;
+
     }
 
     public List<Span> findPii(String text, Policy policy) throws Exception {

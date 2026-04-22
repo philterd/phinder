@@ -15,9 +15,6 @@
  */
 package ai.philterd.phinder.processors;
 
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
-
 import java.io.File;
 import java.io.IOException;
 
@@ -25,22 +22,7 @@ public class ImageProcessor implements DocumentProcessor {
 
     @Override
     public String extractText(File file) throws IOException {
-        Tesseract tesseract = new Tesseract();
-        
-        // In many environments, the tessdata is in a standard location.
-        // For Tess4J on some systems, it might be bundled or need a path.
-        // We'll assume it can find it or is configured via environment.
-        // In the Dockerfile, we will ensure it's in a known place.
-        String datapath = System.getenv("TESSDATA_PREFIX");
-        if (datapath != null) {
-            tesseract.setDatapath(datapath);
-        }
-
-        try {
-            return tesseract.doOCR(file);
-        } catch (TesseractException e) {
-            throw new IOException("Failed to extract text from image: " + file.getName(), e);
-        }
+        return OcrUtil.extractText(file);
     }
 
     @Override

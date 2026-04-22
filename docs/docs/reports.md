@@ -47,4 +47,5 @@ Every report includes:
 3. **Aggregate PII Counts**: Total number of occurrences for each PII type.
 4. **Files Skipped**: The number of files skipped because they hadn't changed since the last scan.
 5. **PII Weights**: The weights used for each PII type (if custom weights were provided).
-6. **Per-file Details**: For each file, the Magnitude and Density Scores, and the counts of each PII type found.
+6. **Best Candidates for Redaction Testing**: A table of the top 20 files with the most PII variety and highest scores (HTML format only).
+7. **Per-file Details**: For each file, the Magnitude and Density Scores, and the counts of each PII type found.
