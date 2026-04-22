@@ -1,0 +1,28 @@
+# CLI Options
+
+Phinder is a command-line application. Below is a list of all available options.
+
+| Option | Long Option | Description |
+|--------|-------------|-------------|
+| `-i` | `--input` | **Required.** The input file(s) or directory/directories to scan. Repeat for multiple. |
+| `-R` | `--recursive`| Recursively traverse subdirectories if directories are provided. |
+| `-p` | `--policy` | Path to a custom Phileas policy (JSON file). |
+| `-r` | `--report` | Path to save the report. (Default: `report.txt`) |
+| `-f` | `--format` | Format of the report: `text`, `pdf`, `json`. (Default: `text`) |
+| `-w` | `--weights` | Path to custom PII weights (JSON file). |
+| | `--csv-delimiter` | Custom CSV delimiter character. (Default: `,`) |
+| | `--csv-quote` | Custom CSV quote character. (Default: `"`) |
+| `-h` | `--help` | Show the help message and exit. |
+| `-V` | `--version` | Show the application version and exit. |
+
+## Examples
+
+### Scan multiple files and output a JSON report
+```bash
+java -jar phinder.jar -i file1.pdf -i file2.docx -r results.json -f json
+```
+
+### Scan a directory recursively with custom weights
+```bash
+java -jar phinder.jar -i my_docs/ -R -w weights.json
+```

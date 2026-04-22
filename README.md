@@ -1,8 +1,19 @@
 # Phinder
 
-A Java application that uses the [Phileas](https://github.com/philterd/phileas) library to identify PII (Personally Identifiable Information) in text.
+A Java application that uses the [Phileas](https://github.com/philterd/phileas) library to identify PII (Personally Identifiable Information) in text across a wide variety of file formats.
 
-## Getting Started
+## Documentation
+
+Comprehensive documentation can be found in the `docs/` directory or can be hosted using MkDocs.
+
+- [Getting Started](docs/docs/getting-started.md)
+- [Supported File Types](docs/docs/supported-file-types.md)
+- [Usage Guide](docs/docs/usage.md)
+- [Risk Score & Weights](docs/docs/configuration/weights.md)
+- [Reporting](docs/docs/reports.md)
+- [CLI Options](docs/docs/cli-options.md)
+
+## Quick Start
 
 ### Build the project
 
@@ -12,45 +23,18 @@ mvn clean install
 
 ### Run the application
 
-First, build the project to create the runnable JAR:
+```bash
+java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt
+```
+
+To process a directory recursively:
 
 ```bash
-mvn clean package
+java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R
 ```
 
-Then, run the application using `java -jar`:
+For more examples and detailed usage, please refer to the [Usage Guide](docs/docs/usage.md).
 
-```bash
-java -jar target/phinder-1.0.0-SNAPSHOT.jar -i input.txt
-```
+## License
 
-To provide a custom Phileas policy (JSON):
-
-```bash
-java -jar target/phinder-1.0.0-SNAPSHOT.jar -i input.txt -p policy.json
-```
-
-## CLI Options
-
-- `-i, --input=<inputFile>`: The input text file (required).
-- `-p, --policy=<policyFile>`: The Phileas policy (JSON file).
-- `-h, --help`: Show help message.
-- `-V, --version`: Print version information.
-
-## Example Script
-
-An `example.sh` script is provided to demonstrate the CLI usage.
-
-```bash
-chmod +x example.sh
-./example.sh
-```
-
-## Usage
-
-The `Phinder` class provides a `findPii` method that returns a list of identified spans:
-
-```java
-Phinder phinder = new Phinder();
-List<Span> spans = phinder.findPii("Contact me at test@example.com");
-```
+This project is licensed under the Apache License 2.0.

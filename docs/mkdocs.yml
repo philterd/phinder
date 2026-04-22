@@ -1,0 +1,25 @@
+site_name: Phinder
+site_description: A Java application to identify PII in text and various file formats using Phileas.
+repo_url: https://github.com/philterd/phileas
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Supported File Types: supported-file-types.md
+  - Usage Guide: usage.md
+  - Configuration:
+      - Phileas Policy: configuration/policy.md
+      - Risk Score Weights: configuration/weights.md
+  - Reports: reports.md
+  - CLI Options: cli-options.md
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

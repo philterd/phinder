@@ -1,3 +1,7 @@
 .idea/
 target/
 dependency-reduced-pom.xml
+report.txt
+report.pdf
+report.json
+weights.json
