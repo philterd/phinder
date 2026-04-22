@@ -29,11 +29,14 @@ import ai.philterd.phinder.processors.*;
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import net.jpountz.xxhash.StreamingXXHash64;
+import net.jpountz.xxhash.XXHashFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -64,11 +67,17 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"-r", "--report"}, description = "The report file path. If not specified, a text report will be saved to 'report.txt'.")
     private File reportFile;
 
-    @Option(names = {"-f", "--format"}, description = "The report format: text, pdf, json. Default is text.", defaultValue = "text")
+    @Option(names = {"-f", "--format"}, description = "The report format: text, pdf, json, html. Default is text.", defaultValue = "text")
     private String reportFormat;
 
     @Option(names = {"-w", "--weights"}, description = "The PII weights (JSON file).")
     private File weightsFile;
+
+    @Option(names = {"-l", "--log"}, description = "Keep a JSON log of the scan (default: scan.json).", arity = "0..1", fallbackValue = "scan.json")
+    private File logFile;
+
+    @Option(names = {"-s", "--skip-unchanged"}, description = "Skip scanning files that haven't changed since the last scan log.")
+    private boolean skipUnchanged;
 
     private PlainTextFilterService filterService;
 
@@ -116,7 +125,20 @@ public class Phinder implements Callable<Integer> {
         );
 
         int exitCode = 0;
+        int skippedCount = 0;
         PhinderReport report = new PhinderReport();
+
+        ScanLog scanLog = new ScanLog();
+        ScanLog previousScanLog = null;
+        if (logFile != null || skipUnchanged) {
+            if (logFile == null) {
+                logFile = new File("scan.json");
+            }
+            if (logFile.exists()) {
+                String logJson = FileUtils.readFileToString(logFile, StandardCharsets.UTF_8);
+                previousScanLog = new Gson().fromJson(logJson, ScanLog.class);
+            }
+        }
 
         if (weightsFile != null) {
             if (!weightsFile.exists()) {
@@ -142,6 +164,8 @@ public class Phinder implements Callable<Integer> {
                 continue;
             }
 
+            scanLog.addScannedPath(inputFile.getAbsolutePath());
+
             if (inputFile.isDirectory()) {
                 try (Stream<Path> stream = recursive ? Files.walk(inputFile.toPath()) : Files.walk(inputFile.toPath(), 1)) {
                     // Process files directly from the stream to handle millions of files without memory issues
@@ -149,8 +173,14 @@ public class Phinder implements Callable<Integer> {
                     for (Path path : iterable) {
                         if (Files.isRegularFile(path)) {
                             File file = path.toFile();
-                            if (processFile(file, processors, policy, report)) {
+                            if (processFileWithCheck(file, processors, policy, report, scanLog, previousScanLog)) {
                                 exitCode = 1;
+                            } else if (skipUnchanged && previousScanLog != null) {
+                                String hash = getFileHash(file);
+                                String previousHash = previousScanLog.getFileHash(file.getAbsolutePath());
+                                if (hash.equals(previousHash)) {
+                                    skippedCount++;
+                                }
                             }
                         }
                     }
@@ -159,15 +189,63 @@ public class Phinder implements Callable<Integer> {
                     exitCode = 1;
                 }
             } else {
-                if (processFile(inputFile, processors, policy, report)) {
+                if (processFileWithCheck(inputFile, processors, policy, report, scanLog, previousScanLog)) {
                     exitCode = 1;
+                } else if (skipUnchanged && previousScanLog != null) {
+                    String hash = getFileHash(inputFile);
+                    String previousHash = previousScanLog.getFileHash(inputFile.getAbsolutePath());
+                    if (hash.equals(previousHash)) {
+                        skippedCount++;
+                    }
                 }
             }
         }
 
+        report.setSkippedFiles(skippedCount);
         generateReport(report);
 
+        if (logFile != null) {
+            String logJson = new Gson().toJson(scanLog);
+            FileUtils.writeStringToFile(logFile, logJson, StandardCharsets.UTF_8);
+            System.out.println("Scan log saved to " + logFile.getAbsolutePath());
+        }
+
         return exitCode;
+    }
+
+    private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> processors, Policy policy, PhinderReport report, ScanLog scanLog, ScanLog previousScanLog) {
+        String hash = getFileHash(inputFile);
+        if (!hash.isEmpty()) {
+            scanLog.putFileHash(inputFile.getAbsolutePath(), hash);
+        }
+
+        if (skipUnchanged && previousScanLog != null) {
+            String previousHash = previousScanLog.getFileHash(inputFile.getAbsolutePath());
+            if (hash.equals(previousHash)) {
+                System.out.println("Skipping unchanged file: " + inputFile.getName());
+                return false;
+            }
+        }
+
+        return processFile(inputFile, processors, policy, report);
+    }
+
+    private String getFileHash(File file) {
+        try {
+            XXHashFactory factory = XXHashFactory.fastestInstance();
+            StreamingXXHash64 hasher = factory.newStreamingHash64(0); // Using seed 0
+            try (FileInputStream fis = new FileInputStream(file)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = fis.read(buffer)) != -1) {
+                    hasher.update(buffer, 0, read);
+                }
+            }
+            return String.format("%016x", hasher.getValue());
+        } catch (IOException e) {
+            System.err.println("Error calculating xxHash64 hash for " + file.getAbsolutePath() + ": " + e.getMessage());
+            return "";
+        }
     }
 
     private boolean processFile(File inputFile, List<DocumentProcessor> processors, Policy policy, PhinderReport report) {

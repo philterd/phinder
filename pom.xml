@@ -88,6 +88,11 @@
       <artifactId>outlook-module</artifactId>
       <version>8.12.6</version>
     </dependency>
+      <dependency>
+          <groupId>org.lz4</groupId>
+          <artifactId>lz4-java</artifactId>
+          <version>1.8.0</version>
+      </dependency>
   </dependencies>
 
   <build>

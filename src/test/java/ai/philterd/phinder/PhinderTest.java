@@ -486,6 +486,40 @@ public class PhinderTest {
     }
 
     @Test
+    public void testHtmlReportGeneration() throws Exception {
+        File txtFile = tempDir.resolve("html-report-test.txt").toFile();
+        org.apache.commons.io.FileUtils.writeStringToFile(txtFile, "Email: html-report@example.com", "UTF-8");
+
+        File reportFile = tempDir.resolve("report.html").toFile();
+
+        Phinder phinder = new Phinder();
+
+        java.lang.reflect.Field inputFilesField = Phinder.class.getDeclaredField("inputFiles");
+        inputFilesField.setAccessible(true);
+        inputFilesField.set(phinder, List.of(txtFile));
+
+        java.lang.reflect.Field reportFileField = Phinder.class.getDeclaredField("reportFile");
+        reportFileField.setAccessible(true);
+        reportFileField.set(phinder, reportFile);
+
+        java.lang.reflect.Field reportFormatField = Phinder.class.getDeclaredField("reportFormat");
+        reportFormatField.setAccessible(true);
+        reportFormatField.set(phinder, "html");
+
+        phinder.call();
+
+        assertTrue(reportFile.exists());
+        String reportContent = org.apache.commons.io.FileUtils.readFileToString(reportFile, "UTF-8");
+        
+        assertTrue(reportContent.contains("<!DOCTYPE html>"));
+        assertTrue(reportContent.contains("Phinder PII Report"));
+        assertTrue(reportContent.contains("tailwindcss.com"));
+        assertTrue(reportContent.contains("html-report-test.txt"));
+        assertTrue(reportContent.contains("Magnitude"));
+        assertTrue(reportContent.contains("Density"));
+    }
+
+    @Test
     public void testMagnitudeScoreCalculation() {
         PhinderReport report = new PhinderReport();
         Span span1 = Span.make(0, 5, FilterType.EMAIL_ADDRESS, "ctx", 0.9, "docid", "val1", "salt", true, true, new String[]{}, 0);
@@ -535,5 +569,61 @@ public class PhinderTest {
         // Actually, let's just make sure it doesn't crash and the weights are loaded.
         Integer result = phinder.call();
         assertEquals(0, result);
+    }
+
+    @Test
+    public void testScanLoggingAndSkipping() throws Exception {
+        File inputFile = tempDir.resolve("input.txt").toFile();
+        org.apache.commons.io.FileUtils.writeStringToFile(inputFile, "Email: test@example.com", "UTF-8");
+        
+        File logFile = tempDir.resolve("scan.json").toFile();
+
+        Phinder phinder = new Phinder();
+        
+        java.lang.reflect.Field inputFilesField = Phinder.class.getDeclaredField("inputFiles");
+        inputFilesField.setAccessible(true);
+        inputFilesField.set(phinder, List.of(inputFile));
+
+        java.lang.reflect.Field logFileField = Phinder.class.getDeclaredField("logFile");
+        logFileField.setAccessible(true);
+        logFileField.set(phinder, logFile);
+
+        // First scan: should process the file and create the log
+        Integer result1 = phinder.call();
+        assertEquals(0, result1);
+        assertTrue(logFile.exists());
+
+        String logJson = org.apache.commons.io.FileUtils.readFileToString(logFile, "UTF-8");
+        assertTrue(logJson.contains(inputFile.getAbsolutePath()));
+
+        // Second scan with skipUnchanged: should skip the file
+        Phinder phinder2 = new Phinder();
+        inputFilesField.set(phinder2, List.of(inputFile));
+        logFileField.set(phinder2, logFile);
+        
+        java.lang.reflect.Field skipUnchangedField = Phinder.class.getDeclaredField("skipUnchanged");
+        skipUnchangedField.setAccessible(true);
+        skipUnchangedField.set(phinder2, true);
+
+        // Capture stdout to verify skipping
+        java.io.ByteArrayOutputStream outContent = new java.io.ByteArrayOutputStream();
+        java.io.PrintStream originalOut = System.out;
+        System.setOut(new java.io.PrintStream(outContent));
+        
+        try {
+            Integer result2 = phinder2.call();
+            assertEquals(0, result2);
+            assertTrue(outContent.toString().contains("Skipping unchanged file: " + inputFile.getName()));
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        // Check report for skipped count
+        File reportFile = new File("report.txt");
+        if (reportFile.exists()) {
+            String reportContent = org.apache.commons.io.FileUtils.readFileToString(reportFile, "UTF-8");
+            assertTrue(reportContent.contains("Files Skipped: 1"));
+            reportFile.delete();
+        }
     }
 }

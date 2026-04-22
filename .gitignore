@@ -4,4 +4,5 @@ dependency-reduced-pom.xml
 report.txt
 report.pdf
 report.json
+report.html
 weights.json

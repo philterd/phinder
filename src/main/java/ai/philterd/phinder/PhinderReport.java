@@ -27,6 +27,7 @@ public class PhinderReport {
     private final Map<String, Long> perFileWordCounts = new HashMap<>();
     private final Map<String, Integer> aggregateCounts = new HashMap<>();
     private final Map<String, Double> weights = new HashMap<>();
+    private int skippedFiles = 0;
 
     public PhinderReport() {
         // Default weight is 1.0 for all types
@@ -88,5 +89,13 @@ public class PhinderReport {
 
     public void setWeight(String piiType, double weight) {
         weights.put(piiType, weight);
+    }
+
+    public int getSkippedFiles() {
+        return skippedFiles;
+    }
+
+    public void setSkippedFiles(int skippedFiles) {
+        this.skippedFiles = skippedFiles;
     }
 }
