@@ -1,0 +1,13 @@
+{
+  "name": "example-policy",
+  "identifiers": {
+    "emailAddress": {
+      "emailAddressFilterStrategies": [
+        {
+          "strategy": "REDACT",
+          "redactionFormat": "{{{REDACTED-%t}}}"
+        }
+      ]
+    }
+  }
+}
