@@ -6,16 +6,9 @@ Types of PII are scored by magnitude, density, and confidence. A list of files s
 
 The goal of Phinder is to provide a comprehensive analysis of PII to help you take the next step to redact it with [Philter](https://github.com/philterd/philter).
 
+Visit http://philterd.github.io/phinder for documentation and more information.
+
 ![Phinder](docs/report.png)
-
-## Documentation
-
-- [Getting Started](docs/docs/getting-started.md)
-- [Supported File Types](docs/docs/supported-file-types.md)
-- [Usage Guide](docs/docs/usage.md)
-- [Magnitude & Density Scores](docs/docs/configuration/weights.md)
-- [Reporting](docs/docs/reports.md)
-- [CLI Options](docs/docs/cli-options.md)
 
 ## Quick Start
 
