@@ -26,7 +26,7 @@ To process a directory recursively:
 java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R
 ```
 
-For more examples and detailed usage, please refer to the [Usage Guide](docs/docs/usage.md).
+For more examples and detailed usage, please refer to the [documentation](http://philterd.github.io/phinder).
 
 ## License
 
