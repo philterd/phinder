@@ -36,6 +36,7 @@ java -jar phinder.jar -i documents/ -r results.json -f json
 ## Report Content
 
 Every report includes:
-1. **Aggregate Risk Score**: Total risk across all files.
-2. **Aggregate PII Counts**: Total number of occurrences for each PII type.
-3. **Per-file Details**: For each file, the Risk Score and the counts of each PII type found.
+1. **Aggregate Magnitude Score**: Total magnitude across all files.
+2. **Aggregate Density Score**: Magnitude score divided by total word count across all files.
+3. **Aggregate PII Counts**: Total number of occurrences for each PII type.
+4. **Per-file Details**: For each file, the Magnitude and Density Scores, and the counts of each PII type found.

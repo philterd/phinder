@@ -48,7 +48,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -413,6 +412,7 @@ public class PhinderTest {
         System.out.println("[DEBUG_LOG] Report content: " + reportContent);
         assertTrue(reportContent.contains("Phinder PII Report"));
         assertTrue(reportContent.contains("report-test.txt"));
+        assertTrue(reportContent.contains("Density Score"));
     }
 
     @Test
@@ -473,36 +473,42 @@ public class PhinderTest {
         String reportContent = org.apache.commons.io.FileUtils.readFileToString(reportFile, "UTF-8");
         System.out.println("[DEBUG_LOG] JSON Report content: " + reportContent);
         
-        assertTrue(reportContent.contains("aggregateRiskScore"));
+        assertTrue(reportContent.contains("aggregateMagnitudeScore"));
+        assertTrue(reportContent.contains("aggregateDensityScore"));
         assertTrue(reportContent.contains("aggregateCounts"));
         assertTrue(reportContent.contains("perFileDetails"));
         assertTrue(reportContent.contains("json-report-test.txt"));
-        assertTrue(reportContent.contains("riskScore"));
+        assertTrue(reportContent.contains("magnitudeScore"));
+        assertTrue(reportContent.contains("densityScore"));
         // The Span's filter type may be serialized as an object or a string depending on Gson.
         // Let's check for the presence of "EMAIL_ADDRESS" which is the type.
         assertTrue(reportContent.contains("EMAIL_ADDRESS") || reportContent.contains("email-address"));
     }
 
     @Test
-    public void testRiskScoreCalculation() {
+    public void testMagnitudeScoreCalculation() {
         PhinderReport report = new PhinderReport();
         Span span1 = Span.make(0, 5, FilterType.EMAIL_ADDRESS, "ctx", 0.9, "docid", "val1", "salt", true, true, new String[]{}, 0);
         Span span2 = Span.make(10, 15, FilterType.EMAIL_ADDRESS, "ctx", 0.9, "docid", "val2", "salt", true, true, new String[]{}, 0);
         Span span3 = Span.make(20, 25, FilterType.PHONE_NUMBER, "ctx", 0.9, "docid", "val3", "salt", true, true, new String[]{}, 0);
 
-        report.addFileResult("file1.txt", List.of(span1, span2));
-        report.addFileResult("file2.txt", List.of(span3));
+        report.addFileResult("file1.txt", List.of(span1, span2), 10);
+        report.addFileResult("file2.txt", List.of(span3), 5);
 
         // Default weights are 1.0
-        assertEquals(2.0, report.getFileRiskScore("file1.txt"));
-        assertEquals(1.0, report.getFileRiskScore("file2.txt"));
-        assertEquals(3.0, report.getAggregateRiskScore());
+        assertEquals(2.0, report.getFileMagnitudeScore("file1.txt"));
+        assertEquals(1.0, report.getFileMagnitudeScore("file2.txt"));
+        assertEquals(3.0, report.getAggregateMagnitudeScore());
+
+        assertEquals(2.0 / 10, report.getFileDensityScore("file1.txt"));
+        assertEquals(1.0 / 5, report.getFileDensityScore("file2.txt"));
+        assertEquals(3.0 / 15, report.getAggregateDensityScore());
 
         // Custom weights
         report.setWeight(FilterType.EMAIL_ADDRESS.getType(), 5.0);
-        assertEquals(10.0, report.getFileRiskScore("file1.txt"));
-        assertEquals(1.0, report.getFileRiskScore("file2.txt"));
-        assertEquals(11.0, report.getAggregateRiskScore());
+        assertEquals(10.0, report.getFileMagnitudeScore("file1.txt"));
+        assertEquals(1.0, report.getFileMagnitudeScore("file2.txt"));
+        assertEquals(11.0, report.getAggregateMagnitudeScore());
     }
 
     @Test

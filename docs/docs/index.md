@@ -7,7 +7,7 @@ Phinder is a Java application that uses the [Phileas](https://github.com/philter
 - **Multi-format Support**: Process Plain Text, PDF, Word, Excel, PowerPoint, CSV, RTF, Emails, Log files, and Images.
 - **Recursive Processing**: Scan entire directories and their subdirectories.
 - **Customizable Policies**: Use Phileas policies to define what PII to look for.
-- **Risk Scoring**: Calculate a Risk Score based on the types and counts of PII found.
+- **Magnitude & Density Scoring**: Calculate scores based on the types, counts, and concentration of PII found.
 - **Reporting**: Generate detailed reports in Text, PDF, or JSON formats.
 - **High Performance**: Optimized for handling large files and millions of documents.
 

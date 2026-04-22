@@ -13,7 +13,7 @@ nav:
   - Usage Guide: usage.md
   - Configuration:
       - Phileas Policy: configuration/policy.md
-      - Risk Score Weights: configuration/weights.md
+      - Magnitude Score Weights: configuration/weights.md
   - Reports: reports.md
   - CLI Options: cli-options.md
 markdown_extensions:

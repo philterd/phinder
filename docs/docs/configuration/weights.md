@@ -1,10 +1,10 @@
-# Risk Score Weights
+# Magnitude Score Weights
 
-Phinder calculates a Risk Score for each file and an aggregate score for the entire scan. By default, every PII occurrence has a weight of 1.0.
+Phinder calculates a Magnitude Score for each file and an aggregate score for the entire scan. By default, every PII occurrence has a weight of 1.0.
 
 ## Custom Weights
 
-You can specify custom weights for different PII types using a `weights.json` file. This allows you to prioritize certain types of PII over others (e.g., a SSN is riskier than an email address).
+You can specify custom weights for different PII types using a `weights.json` file. This allows you to prioritize certain types of PII over others (e.g., a SSN might have a higher magnitude than an email address).
 
 ### `weights.json` Format
 
@@ -28,5 +28,12 @@ java -jar phinder.jar -i documents/ -w my-weights.json
 
 ## Calculation
 
-The Risk Score is calculated as:
+The Magnitude Score is calculated as:
 `Sum(PII Type Count * PII Type Weight)`
+
+### Density Score
+
+Phinder also calculates a **Density Score**, which is the Magnitude Score divided by the word count of the document:
+`Density Score = Magnitude Score / Word Count`
+
+This score helps identify documents with a high concentration of PII relative to their size.

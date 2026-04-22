@@ -67,6 +67,17 @@ public class LogProcessor implements DocumentProcessor {
     }
 
     @Override
+    public long getWordCount(File file) throws IOException {
+        long wordCount = 0;
+        try (LineIterator it = FileUtils.lineIterator(file, StandardCharsets.UTF_8.name())) {
+            while (it.hasNext()) {
+                wordCount += countWords(it.next());
+            }
+        }
+        return wordCount;
+    }
+
+    @Override
     public boolean supports(File file) {
         return file.getName().toLowerCase().endsWith(".log");
     }

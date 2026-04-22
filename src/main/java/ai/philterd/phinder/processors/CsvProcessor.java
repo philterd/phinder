@@ -78,6 +78,25 @@ public class CsvProcessor implements DocumentProcessor {
     }
 
     @Override
+    public long getWordCount(File file) throws IOException {
+        long wordCount = 0;
+        CSVFormat format = CSVFormat.DEFAULT.builder()
+                .setDelimiter(delimiter)
+                .setQuote(quote)
+                .build();
+
+        try (Reader reader = new FileReader(file, StandardCharsets.UTF_8);
+             CSVParser csvParser = new CSVParser(reader, format)) {
+            for (CSVRecord csvRecord : csvParser) {
+                for (String field : csvRecord) {
+                    wordCount += countWords(field);
+                }
+            }
+        }
+        return wordCount;
+    }
+
+    @Override
     public boolean supports(File file) {
         return file.getName().toLowerCase().endsWith(".csv");
     }

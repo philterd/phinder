@@ -9,7 +9,7 @@ Comprehensive documentation can be found in the `docs/` directory or can be host
 - [Getting Started](docs/docs/getting-started.md)
 - [Supported File Types](docs/docs/supported-file-types.md)
 - [Usage Guide](docs/docs/usage.md)
-- [Risk Score & Weights](docs/docs/configuration/weights.md)
+- [Magnitude & Density Scores](docs/docs/configuration/weights.md)
 - [Reporting](docs/docs/reports.md)
 - [CLI Options](docs/docs/cli-options.md)
 

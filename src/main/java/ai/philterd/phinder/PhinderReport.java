@@ -24,6 +24,7 @@ import java.util.Map;
 public class PhinderReport {
 
     private final Map<String, Map<String, Integer>> perFileCounts = new HashMap<>();
+    private final Map<String, Long> perFileWordCounts = new HashMap<>();
     private final Map<String, Integer> aggregateCounts = new HashMap<>();
     private final Map<String, Double> weights = new HashMap<>();
 
@@ -31,7 +32,7 @@ public class PhinderReport {
         // Default weight is 1.0 for all types
     }
 
-    public void addFileResult(String filePath, List<Span> spans) {
+    public void addFileResult(String filePath, List<Span> spans, long wordCount) {
         Map<String, Integer> counts = new HashMap<>();
         for (Span span : spans) {
             String type = span.getFilterType().getType();
@@ -39,17 +40,36 @@ public class PhinderReport {
             aggregateCounts.put(type, aggregateCounts.getOrDefault(type, 0) + 1);
         }
         perFileCounts.put(filePath, counts);
+        perFileWordCounts.put(filePath, wordCount);
     }
 
-    public double getAggregateRiskScore() {
-        return calculateRiskScore(aggregateCounts);
+    public double getAggregateMagnitudeScore() {
+        return calculateMagnitudeScore(aggregateCounts);
     }
 
-    public double getFileRiskScore(String filePath) {
-        return calculateRiskScore(perFileCounts.getOrDefault(filePath, new HashMap<>()));
+    public double getFileMagnitudeScore(String filePath) {
+        return calculateMagnitudeScore(perFileCounts.getOrDefault(filePath, new HashMap<>()));
     }
 
-    private double calculateRiskScore(Map<String, Integer> counts) {
+    public double getFileDensityScore(String filePath) {
+        double magnitudeScore = getFileMagnitudeScore(filePath);
+        long wordCount = perFileWordCounts.getOrDefault(filePath, 0L);
+        if (wordCount == 0) {
+            return 0;
+        }
+        return magnitudeScore / wordCount;
+    }
+
+    public double getAggregateDensityScore() {
+        double aggregateMagnitudeScore = getAggregateMagnitudeScore();
+        long totalWordCount = perFileWordCounts.values().stream().mapToLong(Long::longValue).sum();
+        if (totalWordCount == 0) {
+            return 0;
+        }
+        return aggregateMagnitudeScore / totalWordCount;
+    }
+
+    private double calculateMagnitudeScore(Map<String, Integer> counts) {
         double score = 0;
         for (Map.Entry<String, Integer> entry : counts.entrySet()) {
             double weight = weights.getOrDefault(entry.getKey(), 1.0);

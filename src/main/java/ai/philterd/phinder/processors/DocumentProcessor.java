@@ -39,5 +39,20 @@ public interface DocumentProcessor {
         return phinder.findPii(combinedText, policy);
     }
 
+    default long getWordCount(File file) throws IOException {
+        String text = extractText(file);
+        if (text == null || text.trim().isEmpty()) {
+            return 0;
+        }
+        return countWords(text);
+    }
+
+    default long countWords(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return 0;
+        }
+        return text.trim().split("\\s+").length;
+    }
+
     boolean supports(File file);
 }

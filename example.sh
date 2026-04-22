@@ -26,7 +26,7 @@
 
 echo ""
 echo "----------------------------------------------------"
-echo "Running Phinder with custom PII weights (weights.json)"
+echo "Running Phinder with custom PII weights (weights.json) to affect Magnitude Score"
 echo "----------------------------------------------------"
 
 # Create an example weights.json

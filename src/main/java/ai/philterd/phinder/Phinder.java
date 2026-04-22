@@ -27,14 +27,8 @@ import ai.philterd.phileas.services.filters.filtering.PlainTextFilterService;
 import ai.philterd.phileas.services.strategies.rules.EmailAddressFilterStrategy;
 import ai.philterd.phinder.processors.*;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -189,7 +183,8 @@ public class Phinder implements Callable<Integer> {
 
         try {
             List<Span> spans = processor.process(inputFile, policy, this);
-            report.addFileResult(inputFile.getAbsolutePath(), spans);
+            long wordCount = processor.getWordCount(inputFile);
+            report.addFileResult(inputFile.getAbsolutePath(), spans, wordCount);
 
             System.out.println("PII found in " + inputFile.getName() + ":");
             if (spans.isEmpty()) {
@@ -199,7 +194,8 @@ public class Phinder implements Callable<Integer> {
                     System.out.printf(" - %s (type: %s, confidence: %.2f)\n",
                             span.getText(), span.getFilterType(), span.getConfidence());
                 }
-                System.out.printf("Risk Score: %.2f\n", report.getFileRiskScore(inputFile.getAbsolutePath()));
+                System.out.printf("Magnitude Score: %.2f\n", report.getFileMagnitudeScore(inputFile.getAbsolutePath()));
+                System.out.printf("Density Score: %.4f\n", report.getFileDensityScore(inputFile.getAbsolutePath()));
             }
             System.out.println();
         } catch (Exception e) {
@@ -210,161 +206,8 @@ public class Phinder implements Callable<Integer> {
     }
 
     private void generateReport(PhinderReport report) throws Exception {
-        if (reportFile == null) {
-            reportFile = new File("report.txt");
-        }
-
-        if ("pdf".equalsIgnoreCase(reportFormat)) {
-            generatePdfReport(report, reportFile);
-        } else if ("json".equalsIgnoreCase(reportFormat)) {
-            generateJsonReport(report, reportFile);
-        } else {
-            generateTextReport(report, reportFile);
-        }
-
-        System.out.println("Report generated: " + reportFile.getAbsolutePath());
-    }
-
-    private void generateTextReport(PhinderReport report, File file) throws Exception {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Phinder PII Report\n");
-        sb.append("==================\n\n");
-
-        sb.append(String.format("Aggregate Risk Score: %.2f\n\n", report.getAggregateRiskScore()));
-
-        sb.append("Aggregate Counts:\n");
-        Map<String, Integer> aggregate = report.getAggregateCounts();
-        if (aggregate.isEmpty()) {
-            sb.append(" - No PII detected.\n");
-        } else {
-            aggregate.forEach((type, count) -> sb.append(String.format(" - %s: %d\n", type, count)));
-        }
-
-        sb.append("\nPer-File Details:\n");
-        report.getPerFileCounts().forEach((fileName, counts) -> {
-            sb.append(String.format(" - %s (Risk Score: %.2f):\n", fileName, report.getFileRiskScore(fileName)));
-            if (counts.isEmpty()) {
-                sb.append("   - No PII detected.\n");
-            } else {
-                counts.forEach((type, count) -> sb.append(String.format("   - %s: %d\n", type, count)));
-            }
-        });
-
-        FileUtils.writeStringToFile(file, sb.toString(), StandardCharsets.UTF_8);
-    }
-
-    private void generateJsonReport(PhinderReport report, File file) throws Exception {
-        Map<String, Object> data = new HashMap<>();
-        data.put("aggregateRiskScore", report.getAggregateRiskScore());
-        data.put("aggregateCounts", report.getAggregateCounts());
-
-        Map<String, Object> perFileDetails = new HashMap<>();
-        report.getPerFileCounts().forEach((fileName, counts) -> {
-            Map<String, Object> fileDetail = new HashMap<>();
-            fileDetail.put("riskScore", report.getFileRiskScore(fileName));
-            fileDetail.put("counts", counts);
-            perFileDetails.put(fileName, fileDetail);
-        });
-        data.put("perFileDetails", perFileDetails);
-
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String json = gson.toJson(data);
-
-        FileUtils.writeStringToFile(file, json, StandardCharsets.UTF_8);
-    }
-
-    private void generatePdfReport(PhinderReport report, File file) throws Exception {
-        try (PDDocument document = new PDDocument()) {
-            PDPage page = new PDPage();
-            document.addPage(page);
-
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 16);
-                contentStream.newLineAtOffset(50, 750);
-                contentStream.showText("Phinder PII Report");
-                contentStream.endText();
-
-                int y = 720;
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText(String.format("Aggregate Risk Score: %.2f", report.getAggregateRiskScore()));
-                contentStream.endText();
-                y -= 30;
-
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText("Aggregate Counts:");
-                contentStream.endText();
-                y -= 20;
-
-                Map<String, Integer> aggregate = report.getAggregateCounts();
-                if (aggregate.isEmpty()) {
-                    contentStream.beginText();
-                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                    contentStream.newLineAtOffset(60, y);
-                    contentStream.showText("- No PII detected.");
-                    contentStream.endText();
-                    y -= 20;
-                } else {
-                    for (Map.Entry<String, Integer> entry : aggregate.entrySet()) {
-                        contentStream.beginText();
-                        contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                        contentStream.newLineAtOffset(60, y);
-                        contentStream.showText(String.format("- %s: %d", entry.getKey(), entry.getValue()));
-                        contentStream.endText();
-                        y -= 20;
-                    }
-                }
-
-                y -= 10;
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText("Per-File Details:");
-                contentStream.endText();
-                y -= 20;
-
-                for (Map.Entry<String, Map<String, Integer>> fileEntry : report.getPerFileCounts().entrySet()) {
-                    String fileName = fileEntry.getKey();
-                    contentStream.beginText();
-                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                    contentStream.newLineAtOffset(60, y);
-                    contentStream.showText(String.format("- %s (Risk Score: %.2f):", fileName, report.getFileRiskScore(fileName)));
-                    contentStream.endText();
-                    y -= 15;
-
-                    Map<String, Integer> counts = fileEntry.getValue();
-                    if (counts.isEmpty()) {
-                        contentStream.beginText();
-                        contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
-                        contentStream.newLineAtOffset(80, y);
-                        contentStream.showText("No PII detected.");
-                        contentStream.endText();
-                        y -= 15;
-                    } else {
-                        for (Map.Entry<String, Integer> countEntry : counts.entrySet()) {
-                            contentStream.beginText();
-                            contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
-                            contentStream.newLineAtOffset(80, y);
-                            contentStream.showText(String.format("%s: %d", countEntry.getKey(), countEntry.getValue()));
-                            contentStream.endText();
-                            y -= 15;
-                        }
-                    }
-                    
-                    if (y < 50) {
-                        // This is a simple implementation, it doesn't handle page breaks well.
-                        // For a real app we'd need more logic, but for this task it should suffice.
-                        break; 
-                    }
-                }
-            }
-
-            document.save(file);
-        }
+        ReportBuilder reportBuilder = new ReportBuilder(reportFile, reportFormat);
+        reportBuilder.build(report);
     }
 
     public Policy createDefaultPolicy() {
