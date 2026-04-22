@@ -517,6 +517,85 @@ public class PhinderTest {
         assertTrue(reportContent.contains("html-report-test.txt"));
         assertTrue(reportContent.contains("Magnitude"));
         assertTrue(reportContent.contains("Density"));
+        assertTrue(reportContent.contains("Report generated on"));
+        assertTrue(reportContent.contains("https://www.philterd.ai"));
+    }
+
+    @Test
+    public void testHtmlReportSorting() throws Exception {
+        File fileA = tempDir.resolve("fileA.txt").toFile();
+        File fileB = tempDir.resolve("fileB.txt").toFile();
+        org.apache.commons.io.FileUtils.writeStringToFile(fileA, "Email: a@example.com", "UTF-8");
+        org.apache.commons.io.FileUtils.writeStringToFile(fileB, "Email: b@example.com", "UTF-8");
+
+        File reportFile = tempDir.resolve("report-sorted.html").toFile();
+
+        Phinder phinder = new Phinder();
+
+        java.lang.reflect.Field inputFilesField = Phinder.class.getDeclaredField("inputFiles");
+        inputFilesField.setAccessible(true);
+        inputFilesField.set(phinder, List.of(fileB, fileA)); // Reverse order
+
+        java.lang.reflect.Field reportFileField = Phinder.class.getDeclaredField("reportFile");
+        reportFileField.setAccessible(true);
+        reportFileField.set(phinder, reportFile);
+
+        java.lang.reflect.Field reportFormatField = Phinder.class.getDeclaredField("reportFormat");
+        reportFormatField.setAccessible(true);
+        reportFormatField.set(phinder, "html");
+
+        phinder.call();
+
+        assertTrue(reportFile.exists());
+        String reportContent = org.apache.commons.io.FileUtils.readFileToString(reportFile, "UTF-8");
+
+        // Check if fileA appears before fileB in Per-File Details
+        int indexA = reportContent.indexOf("fileA.txt");
+        int indexB = reportContent.indexOf("fileB.txt");
+
+        // We expect indexA < indexB because we sorted them alphabetically
+        assertTrue(indexA != -1, "fileA.txt not found");
+        assertTrue(indexB != -1, "fileB.txt not found");
+        assertTrue(indexA < indexB, "fileA.txt should appear before fileB.txt in report");
+    }
+
+    @Test
+    public void testHtmlReportWithWeights() throws Exception {
+        File txtFile = tempDir.resolve("html-weights-test.txt").toFile();
+        org.apache.commons.io.FileUtils.writeStringToFile(txtFile, "Email: html-weights@example.com", "UTF-8");
+
+        File reportFile = tempDir.resolve("report-weights.html").toFile();
+        File weightsFile = tempDir.resolve("weights-test.json").toFile();
+        org.apache.commons.io.FileUtils.writeStringToFile(weightsFile, "{\"email-address\": 10.5}", "UTF-8");
+
+        Phinder phinder = new Phinder();
+
+        java.lang.reflect.Field inputFilesField = Phinder.class.getDeclaredField("inputFiles");
+        inputFilesField.setAccessible(true);
+        inputFilesField.set(phinder, List.of(txtFile));
+
+        java.lang.reflect.Field reportFileField = Phinder.class.getDeclaredField("reportFile");
+        reportFileField.setAccessible(true);
+        reportFileField.set(phinder, reportFile);
+
+        java.lang.reflect.Field reportFormatField = Phinder.class.getDeclaredField("reportFormat");
+        reportFormatField.setAccessible(true);
+        reportFormatField.set(phinder, "html");
+
+        java.lang.reflect.Field weightsFileField = Phinder.class.getDeclaredField("weightsFile");
+        weightsFileField.setAccessible(true);
+        weightsFileField.set(phinder, weightsFile);
+
+        phinder.call();
+
+        assertTrue(reportFile.exists());
+        String reportContent = org.apache.commons.io.FileUtils.readFileToString(reportFile, "UTF-8");
+
+        // The "PII Weights" section was removed and merged into the counts table
+        assertFalse(reportContent.contains("<h2 class=\"text-2xl font-bold text-gray-800 mb-6\">PII Weights</h2>"));
+        assertTrue(reportContent.contains("email-address"));
+        assertTrue(reportContent.contains("10.50"));
+        assertTrue(reportContent.contains("Magnitude: 10.50"));
     }
 
     @Test
@@ -576,7 +655,7 @@ public class PhinderTest {
         File inputFile = tempDir.resolve("input.txt").toFile();
         org.apache.commons.io.FileUtils.writeStringToFile(inputFile, "Email: test@example.com", "UTF-8");
         
-        File logFile = tempDir.resolve("scan.json").toFile();
+        File logFile = tempDir.resolve("scan").toFile();
 
         Phinder phinder = new Phinder();
         
@@ -591,10 +670,9 @@ public class PhinderTest {
         // First scan: should process the file and create the log
         Integer result1 = phinder.call();
         assertEquals(0, result1);
-        assertTrue(logFile.exists());
-
-        String logJson = org.apache.commons.io.FileUtils.readFileToString(logFile, "UTF-8");
-        assertTrue(logJson.contains(inputFile.getAbsolutePath()));
+        // H2 creates .mv.db file
+        File dbFile = new File(logFile.getAbsolutePath() + ".mv.db");
+        assertTrue(dbFile.exists());
 
         // Second scan with skipUnchanged: should skip the file
         Phinder phinder2 = new Phinder();
@@ -625,5 +703,60 @@ public class PhinderTest {
             assertTrue(reportContent.contains("Files Skipped: 1"));
             reportFile.delete();
         }
+
+        // Clean up H2 files
+        dbFile.delete();
+        new File(logFile.getAbsolutePath() + ".trace.db").delete();
+    }
+
+    @Test
+    public void testCleanScanLog() throws Exception {
+        File inputFile = tempDir.resolve("input.txt").toFile();
+        org.apache.commons.io.FileUtils.writeStringToFile(inputFile, "Email: test@example.com", "UTF-8");
+
+        File logFile = tempDir.resolve("scan_clean").toFile();
+
+        Phinder phinder = new Phinder();
+
+        java.lang.reflect.Field inputFilesField = Phinder.class.getDeclaredField("inputFiles");
+        inputFilesField.setAccessible(true);
+        inputFilesField.set(phinder, List.of(inputFile));
+
+        java.lang.reflect.Field logFileField = Phinder.class.getDeclaredField("logFile");
+        logFileField.setAccessible(true);
+        logFileField.set(phinder, logFile);
+
+        // First scan: should process the file and create the log
+        phinder.call();
+
+        // Second scan with --clean and --skip-unchanged: should NOT skip the file
+        Phinder phinder2 = new Phinder();
+        inputFilesField.set(phinder2, List.of(inputFile));
+        logFileField.set(phinder2, logFile);
+
+        java.lang.reflect.Field skipUnchangedField = Phinder.class.getDeclaredField("skipUnchanged");
+        skipUnchangedField.setAccessible(true);
+        skipUnchangedField.set(phinder2, true);
+
+        java.lang.reflect.Field cleanField = Phinder.class.getDeclaredField("clean");
+        cleanField.setAccessible(true);
+        cleanField.set(phinder2, true);
+
+        // Capture stdout to verify
+        java.io.ByteArrayOutputStream outContent = new java.io.ByteArrayOutputStream();
+        java.io.PrintStream originalOut = System.out;
+        System.setOut(new java.io.PrintStream(outContent));
+
+        try {
+            phinder2.call();
+            String output = outContent.toString();
+            assertTrue(output.contains("Scan log cleaned."));
+            assertFalse(output.contains("Skipping unchanged file: " + inputFile.getName()));
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        // Clean up H2 files
+        new File(logFile.getAbsolutePath() + ".mv.db").delete();
     }
 }

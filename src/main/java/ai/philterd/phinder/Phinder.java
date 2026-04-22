@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
@@ -73,11 +74,14 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"-w", "--weights"}, description = "The PII weights (JSON file).")
     private File weightsFile;
 
-    @Option(names = {"-l", "--log"}, description = "Keep a JSON log of the scan (default: scan.json).", arity = "0..1", fallbackValue = "scan.json")
+    @Option(names = {"-l", "--log"}, description = "Keep a log of the scan using an H2 database (default: scan.db).", arity = "0..1", fallbackValue = "scan")
     private File logFile;
 
     @Option(names = {"-s", "--skip-unchanged"}, description = "Skip scanning files that haven't changed since the last scan log.")
     private boolean skipUnchanged;
+
+    @Option(names = {"--clean"}, description = "Truncate the scan log database.")
+    private boolean clean;
 
     private PlainTextFilterService filterService;
 
@@ -128,107 +132,111 @@ public class Phinder implements Callable<Integer> {
         int skippedCount = 0;
         PhinderReport report = new PhinderReport();
 
-        ScanLog scanLog = new ScanLog();
-        ScanLog previousScanLog = null;
-        if (logFile != null || skipUnchanged) {
+        ScanLog scanLog = null;
+        if (logFile != null || skipUnchanged || clean) {
             if (logFile == null) {
-                logFile = new File("scan.json");
+                logFile = new File("scan");
             }
-            if (logFile.exists()) {
-                String logJson = FileUtils.readFileToString(logFile, StandardCharsets.UTF_8);
-                previousScanLog = new Gson().fromJson(logJson, ScanLog.class);
-            }
+            scanLog = new ScanLog(logFile);
         }
 
-        if (weightsFile != null) {
-            if (!weightsFile.exists()) {
-                System.err.println("Weights file does not exist: " + weightsFile.getAbsolutePath());
-                return 1;
+        try {
+            if (clean && scanLog != null) {
+                scanLog.clean();
+                System.out.println("Scan log cleaned.");
             }
-            String weightsJson = FileUtils.readFileToString(weightsFile, StandardCharsets.UTF_8);
-            Gson gson = new Gson();
-            Map<String, Double> weightsMap = gson.fromJson(weightsJson, Map.class);
-            if (weightsMap != null) {
-                for (Map.Entry<String, Double> entry : weightsMap.entrySet()) {
-                    String key = String.valueOf(entry.getKey());
-                    Double value = Double.valueOf(String.valueOf(entry.getValue()));
-                    report.setWeight(key, value);
+            if (weightsFile != null) {
+                if (!weightsFile.exists()) {
+                    System.err.println("Weights file does not exist: " + weightsFile.getAbsolutePath());
+                    return 1;
+                }
+                String weightsJson = FileUtils.readFileToString(weightsFile, StandardCharsets.UTF_8);
+                Gson gson = new Gson();
+                Map<String, Object> weightsMap = gson.fromJson(weightsJson, Map.class);
+                if (weightsMap != null) {
+                    for (Map.Entry<String, Object> entry : weightsMap.entrySet()) {
+                        String key = String.valueOf(entry.getKey());
+                        Double value = Double.valueOf(String.valueOf(entry.getValue()));
+                        report.setWeight(key, value);
+                    }
                 }
             }
-        }
 
-        for (File inputFile : inputFiles) {
-            if (!inputFile.exists()) {
-                System.err.println("Input file/directory does not exist: " + inputFile.getAbsolutePath());
-                exitCode = 1;
-                continue;
-            }
+            for (File inputFile : inputFiles) {
+                if (!inputFile.exists()) {
+                    System.err.println("Input file/directory does not exist: " + inputFile.getAbsolutePath());
+                    exitCode = 1;
+                    continue;
+                }
 
-            scanLog.addScannedPath(inputFile.getAbsolutePath());
+                if (scanLog != null) {
+                    scanLog.addScannedPath(inputFile.getAbsolutePath());
+                }
 
-            if (inputFile.isDirectory()) {
-                try (Stream<Path> stream = recursive ? Files.walk(inputFile.toPath()) : Files.walk(inputFile.toPath(), 1)) {
-                    // Process files directly from the stream to handle millions of files without memory issues
-                    Iterable<Path> iterable = stream::iterator;
-                    for (Path path : iterable) {
-                        if (Files.isRegularFile(path)) {
-                            File file = path.toFile();
-                            if (processFileWithCheck(file, processors, policy, report, scanLog, previousScanLog)) {
-                                exitCode = 1;
-                            } else if (skipUnchanged && previousScanLog != null) {
-                                String hash = getFileHash(file);
-                                String previousHash = previousScanLog.getFileHash(file.getAbsolutePath());
-                                if (hash.equals(previousHash)) {
-                                    skippedCount++;
+                if (inputFile.isDirectory()) {
+                    try (Stream<Path> stream = recursive ? Files.walk(inputFile.toPath()) : Files.walk(inputFile.toPath(), 1)) {
+                        // Process files directly from the stream to handle millions of files without memory issues
+                        Iterable<Path> iterable = stream::iterator;
+                        for (Path path : iterable) {
+                            if (Files.isRegularFile(path)) {
+                                File file = path.toFile();
+                                if (processFileWithCheck(file, processors, policy, report, scanLog)) {
+                                    exitCode = 1;
+                                } else if (skipUnchanged && scanLog != null) {
+                                    String hash = getFileHash(file);
+                                    String previousHash = scanLog.getFileHash(file.getAbsolutePath());
+                                    if (hash.equals(previousHash)) {
+                                        skippedCount++;
+                                    }
                                 }
                             }
                         }
+                    } catch (IOException e) {
+                        System.err.println("Failed to walk directory: " + inputFile.getAbsolutePath() + " - " + e.getMessage());
+                        exitCode = 1;
                     }
-                } catch (IOException e) {
-                    System.err.println("Failed to walk directory: " + inputFile.getAbsolutePath() + " - " + e.getMessage());
-                    exitCode = 1;
-                }
-            } else {
-                if (processFileWithCheck(inputFile, processors, policy, report, scanLog, previousScanLog)) {
-                    exitCode = 1;
-                } else if (skipUnchanged && previousScanLog != null) {
-                    String hash = getFileHash(inputFile);
-                    String previousHash = previousScanLog.getFileHash(inputFile.getAbsolutePath());
-                    if (hash.equals(previousHash)) {
-                        skippedCount++;
+                } else {
+                    if (processFileWithCheck(inputFile, processors, policy, report, scanLog)) {
+                        exitCode = 1;
+                    } else if (skipUnchanged && scanLog != null) {
+                        String hash = getFileHash(inputFile);
+                        String previousHash = scanLog.getFileHash(inputFile.getAbsolutePath());
+                        if (hash.equals(previousHash)) {
+                            skippedCount++;
+                        }
                     }
                 }
             }
-        }
 
-        report.setSkippedFiles(skippedCount);
-        generateReport(report);
+            report.setSkippedFiles(skippedCount);
+            generateReport(report);
 
-        if (logFile != null) {
-            String logJson = new Gson().toJson(scanLog);
-            FileUtils.writeStringToFile(logFile, logJson, StandardCharsets.UTF_8);
-            System.out.println("Scan log saved to " + logFile.getAbsolutePath());
-        }
-
-        return exitCode;
-    }
-
-    private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> processors, Policy policy, PhinderReport report, ScanLog scanLog, ScanLog previousScanLog) {
-        String hash = getFileHash(inputFile);
-        if (!hash.isEmpty()) {
-            scanLog.putFileHash(inputFile.getAbsolutePath(), hash);
-        }
-
-        if (skipUnchanged && previousScanLog != null) {
-            String previousHash = previousScanLog.getFileHash(inputFile.getAbsolutePath());
-            if (hash.equals(previousHash)) {
-                System.out.println("Skipping unchanged file: " + inputFile.getName());
-                return false;
+            return exitCode;
+        } finally {
+            if (scanLog != null) {
+                scanLog.close();
+                System.out.println("Scan log saved to " + logFile.getAbsolutePath() + ".mv.db");
             }
         }
-
-        return processFile(inputFile, processors, policy, report);
     }
+
+private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> processors, Policy policy, PhinderReport report, ScanLog scanLog) throws SQLException {
+    String hash = getFileHash(inputFile);
+
+    if (skipUnchanged && scanLog != null) {
+        String previousHash = scanLog.getFileHash(inputFile.getAbsolutePath());
+        if (hash != null && hash.equals(previousHash)) {
+            System.out.println("Skipping unchanged file: " + inputFile.getName());
+            return false;
+        }
+    }
+
+    if (scanLog != null && hash != null) {
+        scanLog.putFileHash(inputFile.getAbsolutePath(), hash);
+    }
+
+    return processFile(inputFile, processors, policy, report);
+}
 
     private String getFileHash(File file) {
         try {

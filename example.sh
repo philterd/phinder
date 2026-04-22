@@ -43,23 +43,23 @@ cat <<EOF > weights.json
 }
 EOF
 
-java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt -w weights.json
+java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt -i src/test/resources/test.eml -w weights.json
 
 echo ""
 echo "----------------------------------------------------"
 echo "Running Phinder with scan logging and skipping unchanged files"
 echo "----------------------------------------------------"
 
-echo "First run: generating scan.json and report.html"
-java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt --log --format html -r report.html
+echo "First run: generating scan and report.html"
+java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt -i src/test/resources/test.eml --log --format html -r report.html
 
 echo ""
-echo "Second run: skipping unchanged file"
-java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt --skip-unchanged
+echo "Second run: skipping unchanged files"
+java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt -i src/test/resources/test.eml --skip-unchanged
 
 echo ""
 echo "Check report for skipped files count"
 grep "Files Skipped" report.txt
 
 # Keep report.html for the user to see
-rm weights.json scan.json report.txt
+rm weights.json scan.mv.db report.txt

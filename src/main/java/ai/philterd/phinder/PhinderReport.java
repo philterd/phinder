@@ -91,6 +91,10 @@ public class PhinderReport {
         weights.put(piiType, weight);
     }
 
+    public Map<String, Double> getWeights() {
+        return weights;
+    }
+
     public int getSkippedFiles() {
         return skippedFiles;
     }

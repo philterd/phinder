@@ -26,7 +26,12 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ReportBuilder {
@@ -236,6 +241,8 @@ public class ReportBuilder {
         sb.append("        <header class=\"mb-12 border-b border-gray-200 pb-8\">\n");
         sb.append("            <h1 class=\"text-4xl font-extrabold text-blue-800 mb-2\">Phinder PII Report</h1>\n");
         sb.append("            <p class=\"text-lg text-gray-600\">Personally Identifiable Information (PII) detection summary.</p>\n");
+        sb.append(String.format("            <p class=\"text-sm text-gray-400 mt-2\">Report generated on %s</p>\n",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
         sb.append("        </header>\n");
 
         // Aggregate Summary Cards
@@ -263,20 +270,33 @@ public class ReportBuilder {
         sb.append("                        <tr>\n");
         sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">PII Type</th>\n");
         sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Count</th>\n");
+        sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Weight</th>\n");
+        sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Magnitude</th>\n");
         sb.append("                        </tr>\n");
         sb.append("                    </thead>\n");
         sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
 
         Map<String, Integer> aggregate = report.getAggregateCounts();
+        Map<String, Double> weights = report.getWeights();
+
         if (aggregate.isEmpty()) {
             sb.append("                        <tr>\n");
-            sb.append("                            <td colspan=\"2\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
+            sb.append("                            <td colspan=\"4\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
             sb.append("                        </tr>\n");
         } else {
-            for (Map.Entry<String, Integer> entry : aggregate.entrySet()) {
+            List<String> sortedTypes = new ArrayList<>(aggregate.keySet());
+            Collections.sort(sortedTypes);
+
+            for (String type : sortedTypes) {
+                int count = aggregate.get(type);
+                double weight = weights.getOrDefault(type, 1.0);
+                double magnitude = count * weight;
+
                 sb.append("                        <tr>\n");
-                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900\">%s</td>\n", entry.getKey()));
-                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%d</td>\n", entry.getValue()));
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900\">%s</td>\n", type));
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%d</td>\n", count));
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%.2f</td>\n", weight));
+                sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-blue-600\">%.2f</td>\n", magnitude));
                 sb.append("                        </tr>\n");
             }
         }
@@ -286,11 +306,16 @@ public class ReportBuilder {
         sb.append("            </div>\n");
         sb.append("        </section>\n");
 
+
         // Per-File Details
         sb.append("        <section>\n");
         sb.append("            <h2 class=\"text-2xl font-bold text-gray-800 mb-6\">Per-File Details</h2>\n");
-        
-        report.getPerFileCounts().forEach((fileName, counts) -> {
+
+        List<String> sortedFiles = new ArrayList<>(report.getPerFileCounts().keySet());
+        Collections.sort(sortedFiles);
+
+        for (String fileName : sortedFiles) {
+            Map<String, Integer> counts = report.getPerFileCounts().get(fileName);
             sb.append("            <div class=\"bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8\">\n");
             sb.append("                <div class=\"bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-wrap justify-between items-center\">\n");
             sb.append(String.format("                    <h3 class=\"text-lg font-semibold text-gray-800 break-all mr-4\">%s</h3>\n", fileName));
@@ -300,29 +325,44 @@ public class ReportBuilder {
             sb.append("                    </div>\n");
             sb.append("                </div>\n");
             sb.append("                <table class=\"min-w-full divide-y divide-gray-200\">\n");
+            sb.append("                    <thead class=\"bg-gray-50\">\n");
+            sb.append("                        <tr>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">PII Type</th>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Count</th>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Weight</th>\n");
+            sb.append("                            <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">Magnitude</th>\n");
+            sb.append("                        </tr>\n");
+            sb.append("                    </thead>\n");
             sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
-            
+
             if (counts.isEmpty()) {
                 sb.append("                        <tr>\n");
-                sb.append("                            <td class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
+                sb.append("                            <td colspan=\"4\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
                 sb.append("                        </tr>\n");
             } else {
-                counts.forEach((type, count) -> {
+                List<String> sortedTypes = new ArrayList<>(counts.keySet());
+                Collections.sort(sortedTypes);
+
+                for (String type : sortedTypes) {
+                    int count = counts.get(type);
+                    double weight = weights.getOrDefault(type, 1.0);
+                    double magnitude = count * weight;
                     sb.append("                        <tr>\n");
-                    sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900 w-1/2\">%s</td>\n", type));
+                    sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900\">%s</td>\n", type));
                     sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%d</td>\n", count));
+                    sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%.2f</td>\n", weight));
+                    sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-blue-600\">%.2f</td>\n", magnitude));
                     sb.append("                        </tr>\n");
-                });
+                }
             }
-            
             sb.append("                    </tbody>\n");
             sb.append("                </table>\n");
             sb.append("            </div>\n");
-        });
+        }
 
         sb.append("        </section>\n");
         sb.append("        <footer class=\"mt-12 text-center text-gray-400 text-sm border-t border-gray-200 pt-8\">\n");
-        sb.append("            Generated by Phinder - Copyright 2026 Philterd, LLC\n");
+        sb.append("            Generated by Phinder - Copyright 2026 <a href=\"https://www.philterd.ai\" class=\"text-blue-500 hover:underline\">Philterd, LLC</a>\n");
         sb.append("        </footer>\n");
         sb.append("    </div>\n");
         sb.append("</body>\n");

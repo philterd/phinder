@@ -46,4 +46,5 @@ Every report includes:
 2. **Aggregate Density Score**: Magnitude score divided by total word count across all files.
 3. **Aggregate PII Counts**: Total number of occurrences for each PII type.
 4. **Files Skipped**: The number of files skipped because they hadn't changed since the last scan.
-5. **Per-file Details**: For each file, the Magnitude and Density Scores, and the counts of each PII type found.
+5. **PII Weights**: The weights used for each PII type (if custom weights were provided).
+6. **Per-file Details**: For each file, the Magnitude and Density Scores, and the counts of each PII type found.

@@ -38,11 +38,11 @@ Phinder is designed to handle very large files efficiently. Specifically, `.log`
 
 ## Scan Logging and Skipping
 
-To speed up subsequent scans, Phinder can maintain a log of scanned files and their xxHash64 hashes.
+To speed up subsequent scans, Phinder can maintain a log of scanned files and their xxHash64 hashes using a local H2 database.
 
 ### Generating a Scan Log
 
-By default, using `--log` or `--skip-unchanged` will use `scan.json`.
+By default, using `--log` or `--skip-unchanged` will use `scan` (which creates `scan.mv.db`).
 
 ```bash
 java -jar phinder.jar -i /path/to/data --log
@@ -59,7 +59,17 @@ java -jar phinder.jar -i /path/to/data --skip-unchanged
 If you have a specific scan log from a previous session, you can provide it using `--log`:
 
 ```bash
-java -jar phinder.jar -i /path/to/data --log previous_scan.json --skip-unchanged
+java -jar phinder.jar -i /path/to/data --log previous_scan --skip-unchanged
 ```
 
-Phinder will compare the file names and hash values in `previous_scan.json` to determine if a file can be skipped. The count of skipped files will be included in the reports.
+Phinder will compare the file names and hash values in the `previous_scan` H2 database to determine if a file can be skipped. The count of skipped files will be included in the reports.
+
+### Cleaning the Scan Log
+
+To clear the recorded hashes and paths from the scan log database, use the `--clean` option:
+
+```bash
+java -jar phinder.jar --log scan --clean
+```
+
+This will truncate the tables in the `scan` database, forcing all files to be re-scanned on the next run with `--skip-unchanged`.

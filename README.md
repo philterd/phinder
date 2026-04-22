@@ -2,6 +2,8 @@
 
 A Java application that uses the [Phileas](https://github.com/philterd/phileas) library to identify PII (Personally Identifiable Information) in text across a wide variety of file formats.
 
+![Phinder](docs/report.png)
+
 ## Documentation
 
 Comprehensive documentation can be found in the `docs/` directory or can be hosted using MkDocs.
