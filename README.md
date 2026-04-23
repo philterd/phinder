@@ -1,8 +1,12 @@
 # Phinder
 
-A Java application that uses the [Phileas](https://github.com/philterd/phileas) library to identify PII (Personally Identifiable Information) in text across a wide variety of file formats. Types of PII are scored by magnitude, density, and confidence. A list of files suggested for redaction testing will be generated. The goal of Phinder is to provide a comprehensive analysis of PII to help you take the next step to redact it with [Philter](https://github.com/philterd/philter).
+A Java application that uses the [Phileas](https://github.com/philterd/phileas) library to identify PII (Personally Identifiable Information) in text across a wide variety of file formats. Types of PII are scored by magnitude, density, and confidence. A list of files suggested for redaction testing will be generated.
+
+The goal of Phinder is to provide a comprehensive analysis of PII to help you take the next step to redact it with [Philter](https://github.com/philterd/philter). Note that Phinder may support more file types than Philter.
 
 Visit http://philterd.github.io/phinder for documentation and more information.
+
+## Example Generated Report
 
 ![Phinder](docs/report.png)
 
@@ -25,6 +29,9 @@ To process a directory recursively:
 ```bash
 java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R
 ```
+
+> [!NOTE]
+> Processing images requires tesseract-ocr to be installed.
 
 For more examples and detailed usage, please refer to the [documentation](http://philterd.github.io/phinder).
 
