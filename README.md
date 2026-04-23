@@ -33,6 +33,8 @@ java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R
 > [!NOTE]
 > Processing images requires tesseract-ocr to be installed.
 
+At the completion of the scan, `report.json` and `report.html` files will be generated in the current directory.
+
 For more examples and detailed usage, please refer to the [documentation](http://philterd.github.io/phinder).
 
 ## License
