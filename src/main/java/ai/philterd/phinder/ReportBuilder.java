@@ -40,22 +40,49 @@ public class ReportBuilder {
     private final String reportFormat;
 
     public ReportBuilder(File reportFile, String reportFormat) {
-        this.reportFile = reportFile != null ? reportFile : new File("report.txt");
-        this.reportFormat = reportFormat != null ? reportFormat : "text";
+        this.reportFile = reportFile;
+        this.reportFormat = reportFormat;
     }
 
     public void build(PhinderReport report) throws Exception {
-        if ("pdf".equalsIgnoreCase(reportFormat)) {
-            generatePdfReport(report, reportFile);
-        } else if ("json".equalsIgnoreCase(reportFormat)) {
-            generateJsonReport(report, reportFile);
-        } else if ("html".equalsIgnoreCase(reportFormat)) {
-            generateHtmlReport(report, reportFile);
-        } else {
-            generateTextReport(report, reportFile);
+        // Always generate the HTML report.
+        File htmlReportFile = new File("report.html");
+
+        // If the user specified a report file and it is HTML, use that.
+        // Or if they specified the format as html, use the reportFile.
+        if (reportFile != null && (reportFile.getName().endsWith(".html") || "html".equalsIgnoreCase(reportFormat))) {
+            htmlReportFile = reportFile;
         }
 
-        System.out.println("Report generated: " + reportFile.getAbsolutePath());
+        generateHtmlReport(report, htmlReportFile);
+        System.out.println("HTML report generated: " + htmlReportFile.getAbsolutePath());
+
+        // Generate the other report if it's specified.
+        if (reportFile != null || reportFormat != null) {
+            // Determine the format if not explicitly provided
+            String format = reportFormat;
+            if (format == null) {
+                if (reportFile.getName().endsWith(".pdf")) format = "pdf";
+                else if (reportFile.getName().endsWith(".json")) format = "json";
+                else if (reportFile.getName().endsWith(".html")) format = "html";
+                else format = "text";
+            }
+
+            File otherReportFile = reportFile != null ? reportFile : new File("report.txt");
+
+            if ("pdf".equalsIgnoreCase(format)) {
+                generatePdfReport(report, otherReportFile);
+                System.out.println("PDF report generated: " + otherReportFile.getAbsolutePath());
+            } else if ("json".equalsIgnoreCase(format)) {
+                generateJsonReport(report, otherReportFile);
+                System.out.println("JSON report generated: " + otherReportFile.getAbsolutePath());
+            } else if ("text".equalsIgnoreCase(format)) {
+                generateTextReport(report, otherReportFile);
+                System.out.println("Text report generated: " + otherReportFile.getAbsolutePath());
+            } else if ("html".equalsIgnoreCase(format)) {
+                // Already generated above, but if it was the only one requested via -r or -f, we don't need to do more.
+            }
+        }
     }
 
     public static void generateTextReport(PhinderReport report, File file) throws Exception {

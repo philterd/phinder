@@ -70,7 +70,7 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"-r", "--report"}, description = "The report file path. If not specified, a text report will be saved to 'report.txt'.")
     private File reportFile;
 
-    @Option(names = {"-f", "--format"}, description = "The report format: text, pdf, json, html. Default is text.", defaultValue = "text")
+    @Option(names = {"-f", "--format"}, description = "The report format: text, pdf, json, html. Default is text.")
     private String reportFormat;
 
     @Option(names = {"-w", "--weights"}, description = "The PII weights (JSON file).")

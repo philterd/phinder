@@ -7,8 +7,8 @@ Phinder is a command-line application. Below is a list of all available options.
 | `-i` | `--input` | **Required.** The input file(s) or directory/directories to scan. Repeat for multiple. |
 | `-R` | `--recursive`| Recursively traverse subdirectories if directories are provided.                       |
 | `-p` | `--policy` | Path to a custom Phileas policy (JSON file).                                           |
-| `-r` | `--report` | Path to save the report. (Default: `report.txt`)                                       |
-| `-f` | `--format` | Format of the report: `text`, `pdf`, `json`, `html`. (Default: `text`)             |
+| `-r` | `--report` | Path to save an optional report. (Default: `report.txt` if specified)                   |
+| `-f` | `--format` | Format of the optional report: `text`, `pdf`, `json`, `html`.                           |
 | `-w` | `--weights` | Path to custom PII weights (JSON file).                                                |
 | `-l` | `--log`     | Path to save the scan log (H2 database). (Default: `scan`)                             |
 | `-s` | `--skip-unchanged` | Skip scanning files that haven't changed since the last scan log.                      |

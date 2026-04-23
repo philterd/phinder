@@ -16,6 +16,7 @@ nav:
       - Magnitude Score Weights: configuration/weights.md
   - Reports: reports.md
   - CLI Options: cli-options.md
+  - FAQ: faq.md
 markdown_extensions:
   - admonition
   - pymdownx.highlight:
