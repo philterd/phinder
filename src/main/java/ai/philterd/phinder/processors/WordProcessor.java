@@ -23,22 +23,29 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class WordProcessor implements DocumentProcessor {
 
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/msword"
+    );
+
     @Override
-    public String extractText(File file) throws IOException {
-        String name = file.getName().toLowerCase();
-        try (FileInputStream fis = new FileInputStream(file)) {
+    public String extractText(final File file) throws IOException {
+        final String name = file.getName().toLowerCase();
+        try (final FileInputStream fis = new FileInputStream(file)) {
             if (name.endsWith(".docx")) {
-                try (XWPFDocument doc = new XWPFDocument(fis)) {
-                    try (XWPFWordExtractor extractor = new XWPFWordExtractor(doc)) {
+                try (final XWPFDocument doc = new XWPFDocument(fis)) {
+                    try (final XWPFWordExtractor extractor = new XWPFWordExtractor(doc)) {
                         return extractor.getText();
                     }
                 }
             } else if (name.endsWith(".doc")) {
-                try (HWPFDocument doc = new HWPFDocument(fis)) {
-                    try (WordExtractor extractor = new WordExtractor(doc)) {
+                try (final HWPFDocument doc = new HWPFDocument(fis)) {
+                    try (final WordExtractor extractor = new WordExtractor(doc)) {
                         return extractor.getText();
                     }
                 }
@@ -48,9 +55,8 @@ public class WordProcessor implements DocumentProcessor {
     }
 
     @Override
-    public boolean supports(File file) {
-        String name = file.getName().toLowerCase();
-        return name.endsWith(".docx") || name.endsWith(".doc");
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

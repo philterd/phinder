@@ -27,19 +27,19 @@ public class ScanLog implements AutoCloseable {
 
     private final Connection connection;
 
-    public ScanLog(File databaseFile) throws SQLException {
+    public ScanLog(final File databaseFile) throws SQLException {
         try {
             Class.forName("org.h2.Driver");
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             throw new SQLException("H2 driver not found", e);
         }
-        String url = "jdbc:h2:" + databaseFile.getAbsolutePath();
+        final String url = "jdbc:h2:" + databaseFile.getAbsolutePath();
         this.connection = DriverManager.getConnection(url, "sa", "");
         initializeDatabase();
     }
 
     private void initializeDatabase() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
+        try (final Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE IF NOT EXISTS scanned_paths (path VARCHAR(4096) PRIMARY KEY)");
             stmt.execute("CREATE TABLE IF NOT EXISTS file_hashes (file_path VARCHAR(4096) PRIMARY KEY, hash VARCHAR(64))");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_scanned_paths_path ON scanned_paths(path)");
@@ -48,9 +48,9 @@ public class ScanLog implements AutoCloseable {
     }
 
     public List<String> getScannedPaths() throws SQLException {
-        List<String> paths = new ArrayList<>();
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT path FROM scanned_paths")) {
+        final List<String> paths = new ArrayList<>();
+        try (final Statement stmt = connection.createStatement();
+             final ResultSet rs = stmt.executeQuery("SELECT path FROM scanned_paths")) {
             while (rs.next()) {
                 paths.add(rs.getString("path"));
             }
@@ -58,17 +58,17 @@ public class ScanLog implements AutoCloseable {
         return paths;
     }
 
-    public void addScannedPath(String path) throws SQLException {
-        String sql = "MERGE INTO scanned_paths (path) KEY (path) VALUES (?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+    public void addScannedPath(final String path) throws SQLException {
+        final String sql = "MERGE INTO scanned_paths (path) KEY (path) VALUES (?)";
+        try (final PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, path);
             pstmt.executeUpdate();
         }
     }
 
-    public void putFileHash(String filePath, String hash) throws SQLException {
-        String sql = "MERGE INTO file_hashes (file_path, hash) KEY (file_path) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+    public void putFileHash(final String filePath, final String hash) throws SQLException {
+        final String sql = "MERGE INTO file_hashes (file_path, hash) KEY (file_path) VALUES (?, ?)";
+        try (final PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, filePath);
             pstmt.setString(2, hash);
             pstmt.executeUpdate();
@@ -76,17 +76,17 @@ public class ScanLog implements AutoCloseable {
     }
 
     public void clean() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
+        try (final Statement stmt = connection.createStatement()) {
             stmt.execute("TRUNCATE TABLE scanned_paths");
             stmt.execute("TRUNCATE TABLE file_hashes");
         }
     }
 
-    public String getFileHash(String filePath) throws SQLException {
-        String sql = "SELECT hash FROM file_hashes WHERE file_path = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+    public String getFileHash(final String filePath) throws SQLException {
+        final String sql = "SELECT hash FROM file_hashes WHERE file_path = ?";
+        try (final PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, filePath);
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (final ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return rs.getString("hash");
                 }

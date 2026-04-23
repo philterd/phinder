@@ -32,42 +32,45 @@ public class PlainTextProcessorTest {
 
     @Test
     public void testSupports() {
-        PlainTextProcessor processor = new PlainTextProcessor();
-        assertTrue(processor.supports(new File("test.txt")));
-        assertTrue(processor.supports(new File("test.md")));
-        assertFalse(processor.supports(new File("test.pdf")));
-        assertFalse(processor.supports(new File("test.DOCX")));
+        final PlainTextProcessor processor = new PlainTextProcessor();
+        assertTrue(processor.supports("text/plain"));
+        assertTrue(processor.supports("text/markdown"));
+        assertFalse(processor.supports("application/pdf"));
+        assertTrue(processor.supports("text/plain", "test.txt"));
+        assertTrue(processor.supports("text/markdown", "test.md"));
+        assertFalse(processor.supports("text/plain", "test.log"));
+        assertFalse(processor.supports("text/plain", "test.csv"));
     }
 
     @Test
     public void testExtractTextTxt() throws Exception {
-        File txtFile = tempDir.resolve("test.txt").toFile();
-        String content = "Email: test@example.com";
+        final File txtFile = tempDir.resolve("test.txt").toFile();
+        final String content = "Email: test@example.com";
         FileUtils.writeStringToFile(txtFile, content, StandardCharsets.UTF_8);
 
-        PlainTextProcessor processor = new PlainTextProcessor();
-        String extracted = processor.extractText(txtFile);
+        final PlainTextProcessor processor = new PlainTextProcessor();
+        final String extracted = processor.extractText(txtFile);
         assertEquals(content, extracted.trim());
     }
 
     @Test
     public void testExtractTextMd() throws Exception {
-        File mdFile = tempDir.resolve("test.md").toFile();
-        String content = "# Markdown\nEmail: test@example.md";
+        final File mdFile = tempDir.resolve("test.md").toFile();
+        final String content = "# Markdown\nEmail: test@example.md";
         FileUtils.writeStringToFile(mdFile, content, StandardCharsets.UTF_8);
 
-        PlainTextProcessor processor = new PlainTextProcessor();
-        String extracted = processor.extractText(mdFile);
+        final PlainTextProcessor processor = new PlainTextProcessor();
+        final String extracted = processor.extractText(mdFile);
         assertEquals(content, extracted.trim());
     }
 
     @Test
     public void testWordCount() throws Exception {
-        File txtFile = tempDir.resolve("test.txt").toFile();
-        String content = "One two three four.";
+        final File txtFile = tempDir.resolve("test.txt").toFile();
+        final String content = "One two three four.";
         FileUtils.writeStringToFile(txtFile, content, StandardCharsets.UTF_8);
 
-        PlainTextProcessor processor = new PlainTextProcessor();
+        final PlainTextProcessor processor = new PlainTextProcessor();
         assertEquals(4, processor.getWordCount(txtFile));
     }
 }

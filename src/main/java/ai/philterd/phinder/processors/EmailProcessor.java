@@ -20,13 +20,20 @@ import org.simplejavamail.converter.EmailConverter;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class EmailProcessor implements DocumentProcessor {
 
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList(
+            "message/rfc822",
+            "application/vnd.ms-outlook"
+    );
+
     @Override
-    public String extractText(File file) throws IOException {
-        String name = file.getName().toLowerCase();
-        Email email;
+    public String extractText(final File file) throws IOException {
+        final String name = file.getName().toLowerCase();
+        final Email email;
 
         if (name.endsWith(".eml")) {
             email = EmailConverter.emlToEmail(file);
@@ -36,7 +43,7 @@ public class EmailProcessor implements DocumentProcessor {
             return null;
         }
 
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         if (email.getSubject() != null) {
             sb.append("Subject: ").append(email.getSubject()).append("\n");
         }
@@ -55,9 +62,8 @@ public class EmailProcessor implements DocumentProcessor {
     }
 
     @Override
-    public boolean supports(File file) {
-        String name = file.getName().toLowerCase();
-        return name.endsWith(".eml") || name.endsWith(".msg");
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

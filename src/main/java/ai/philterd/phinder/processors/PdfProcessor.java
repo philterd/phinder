@@ -23,26 +23,30 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class PdfProcessor implements DocumentProcessor {
 
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList("application/pdf");
+
     @Override
-    public String extractText(File file) throws IOException {
-        try (PDDocument document = Loader.loadPDF(file)) {
-            PDFTextStripper stripper = new PDFTextStripper();
+    public String extractText(final File file) throws IOException {
+        try (final PDDocument document = Loader.loadPDF(file)) {
+            final PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
 
             // If the extracted text is empty or very short, try OCR
             if (text == null || text.trim().length() < 10) {
-                StringBuilder sb = new StringBuilder();
+                final StringBuilder sb = new StringBuilder();
                 if (text != null) {
                     sb.append(text);
                 }
 
-                PDFRenderer renderer = new PDFRenderer(document);
+                final PDFRenderer renderer = new PDFRenderer(document);
                 for (int i = 0; i < document.getNumberOfPages(); i++) {
-                    BufferedImage image = renderer.renderImageWithDPI(i, 300);
-                    String ocrText = OcrUtil.extractText(image);
+                    final BufferedImage image = renderer.renderImageWithDPI(i, 300);
+                    final String ocrText = OcrUtil.extractText(image);
                     if (ocrText != null) {
                         sb.append(ocrText);
                     }
@@ -55,8 +59,8 @@ public class PdfProcessor implements DocumentProcessor {
     }
 
     @Override
-    public boolean supports(File file) {
-        return file.getName().toLowerCase().endsWith(".pdf");
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

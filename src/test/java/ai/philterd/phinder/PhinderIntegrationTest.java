@@ -35,9 +35,9 @@ public class PhinderIntegrationTest {
 
     @Test
     public void testFindPii() throws Exception {
-        Phinder phinder = new Phinder();
-        String text = "Contact me at test@example.com";
-        List<Span> spans = phinder.findPii(text);
+        final Phinder phinder = new Phinder();
+        final String text = "Contact me at test@example.com";
+        final List<Span> spans = phinder.findPii(text);
 
         assertFalse(spans.isEmpty(), "Should have found at least one PII span");
         assertTrue(spans.stream().anyMatch(s -> s.getText().equals("test@example.com")));
@@ -45,53 +45,53 @@ public class PhinderIntegrationTest {
 
     @Test
     public void testCliHelp() {
-        Phinder phinder = new Phinder();
-        CommandLine cmd = new CommandLine(phinder);
-        int exitCode = cmd.execute("--help");
+        final Phinder phinder = new Phinder();
+        final CommandLine cmd = new CommandLine(phinder);
+        final int exitCode = cmd.execute("--help");
         assertEquals(0, exitCode);
     }
 
     @Test
     public void testMultipleFilesIntegration() throws Exception {
-        File file1 = tempDir.resolve("file1.txt").toFile();
-        File file2 = tempDir.resolve("file2.txt").toFile();
+        final File file1 = tempDir.resolve("file1.txt").toFile();
+        final File file2 = tempDir.resolve("file2.txt").toFile();
         FileUtils.writeStringToFile(file1, "Email: one@example.com", StandardCharsets.UTF_8);
         FileUtils.writeStringToFile(file2, "Email: two@example.com", StandardCharsets.UTF_8);
 
-        Phinder phinder = new Phinder();
-        CommandLine cmd = new CommandLine(phinder);
-        int exitCode = cmd.execute("-i", file1.getAbsolutePath(), "-i", file2.getAbsolutePath());
+        final Phinder phinder = new Phinder();
+        final CommandLine cmd = new CommandLine(phinder);
+        final int exitCode = cmd.execute("-i", file1.getAbsolutePath(), "-i", file2.getAbsolutePath());
         
         assertEquals(0, exitCode);
     }
 
     @Test
     public void testDirectoryProcessingRecursive() throws Exception {
-        Path subDir = tempDir.resolve("subdir");
+        final Path subDir = tempDir.resolve("subdir");
         subDir.toFile().mkdir();
-        File file1 = tempDir.resolve("file1.txt").toFile();
-        File file2 = subDir.resolve("file2.txt").toFile();
+        final File file1 = tempDir.resolve("file1.txt").toFile();
+        final File file2 = subDir.resolve("file2.txt").toFile();
         FileUtils.writeStringToFile(file1, "Email: one@example.com", StandardCharsets.UTF_8);
         FileUtils.writeStringToFile(file2, "Email: two@example.com", StandardCharsets.UTF_8);
 
-        Phinder phinder = new Phinder();
-        CommandLine cmd = new CommandLine(phinder);
-        int exitCode = cmd.execute("-i", tempDir.toFile().getAbsolutePath(), "--recursive");
+        final Phinder phinder = new Phinder();
+        final CommandLine cmd = new CommandLine(phinder);
+        final int exitCode = cmd.execute("-i", tempDir.toFile().getAbsolutePath(), "--recursive");
         
         assertEquals(0, exitCode);
     }
 
     @Test
     public void testCustomWeightsFromFile() throws Exception {
-        File weightsFile = tempDir.resolve("weights.json").toFile();
+        final File weightsFile = tempDir.resolve("weights.json").toFile();
         FileUtils.writeStringToFile(weightsFile, "{\"email-address\": 10.0}", StandardCharsets.UTF_8);
         
-        File inputFile = tempDir.resolve("input.txt").toFile();
+        final File inputFile = tempDir.resolve("input.txt").toFile();
         FileUtils.writeStringToFile(inputFile, "test@example.com", StandardCharsets.UTF_8);
 
-        Phinder phinder = new Phinder();
-        CommandLine cmd = new CommandLine(phinder);
-        int exitCode = cmd.execute("-i", inputFile.getAbsolutePath(), "-w", weightsFile.getAbsolutePath());
+        final Phinder phinder = new Phinder();
+        final CommandLine cmd = new CommandLine(phinder);
+        final int exitCode = cmd.execute("-i", inputFile.getAbsolutePath(), "-w", weightsFile.getAbsolutePath());
         
         assertEquals(0, exitCode);
     }

@@ -17,18 +17,32 @@ package ai.philterd.phinder.processors;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class ImageProcessor implements DocumentProcessor {
 
+    private static final List<String> ACCEPTABLE_EXTENSIONS = Arrays.asList(".png", ".jpg", ".jpeg");
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList("image/png", "image/jpeg");
+
     @Override
-    public String extractText(File file) throws IOException {
+    public String extractText(final File file) throws IOException {
         return OcrUtil.extractText(file);
     }
 
     @Override
-    public boolean supports(File file) {
-        String name = file.getName().toLowerCase();
-        return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg");
+    public boolean supports(final String mimeType, final String fileName) {
+        if (fileName != null) {
+            final String lowerFileName = fileName.toLowerCase();
+            return supports(mimeType) && ACCEPTABLE_EXTENSIONS.stream().anyMatch(lowerFileName::endsWith);
+        }
+
+        return supports(mimeType);
+    }
+
+    @Override
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

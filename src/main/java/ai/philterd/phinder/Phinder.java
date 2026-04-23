@@ -27,12 +27,23 @@ import ai.philterd.phileas.services.disambiguation.vector.InMemoryVectorService;
 import ai.philterd.phileas.services.filters.filtering.PlainTextFilterService;
 import ai.philterd.phileas.services.strategies.rules.EmailAddressFilterStrategy;
 import ai.philterd.phileas.services.strategies.rules.SsnFilterStrategy;
-import ai.philterd.phinder.processors.*;
+import ai.philterd.phinder.processors.CsvProcessor;
+import ai.philterd.phinder.processors.DocumentProcessor;
+import ai.philterd.phinder.processors.EmailProcessor;
+import ai.philterd.phinder.processors.ExcelProcessor;
+import ai.philterd.phinder.processors.ImageProcessor;
+import ai.philterd.phinder.processors.LogProcessor;
+import ai.philterd.phinder.processors.PdfProcessor;
+import ai.philterd.phinder.processors.PlainTextProcessor;
+import ai.philterd.phinder.processors.PowerPointProcessor;
+import ai.philterd.phinder.processors.RtfProcessor;
+import ai.philterd.phinder.processors.WordProcessor;
 import com.google.gson.Gson;
-import org.apache.commons.io.FileUtils;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
 import net.jpountz.xxhash.StreamingXXHash64;
 import net.jpountz.xxhash.XXHashFactory;
+import org.apache.commons.io.FileUtils;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.tika.Tika;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -44,7 +55,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
@@ -52,7 +66,7 @@ import java.util.stream.Stream;
         description = "Identifies PII in text using Phileas.")
 public class Phinder implements Callable<Integer> {
 
-    @Option(names = {"-i", "--input"}, description = "The input file(s) or directorie(s) (text, Markdown, PDF, Word, Excel, PowerPoint, CSV, RTF, PNG, JPG/JPEG, EML, MSG, or LOG).", required = true)
+    @Option(names = {"-i", "--input"}, description = "The input file(s) or directories (text, Markdown, PDF, Word, Excel, PowerPoint, CSV, RTF, PNG, JPG/JPEG, EML, MSG, or LOG).", required = true)
     private List<File> inputFiles;
 
     @Option(names = {"-R", "--recursive"}, description = "Recursively traverse directories.")
@@ -81,29 +95,33 @@ public class Phinder implements Callable<Integer> {
 
     private PlainTextFilterService filterService;
 
-    public static void main(String[] args) {
-        int exitCode = new CommandLine(new Phinder()).execute(args);
+    public static void main(final String[] args) {
+        final int exitCode = new CommandLine(new Phinder()).execute(args);
         System.exit(exitCode);
     }
 
     @Override
     public Integer call() throws Exception {
-        Policy policy;
+
+        final Policy policy;
+
         if (policyFile != null) {
+
             if (!policyFile.exists()) {
                 System.err.println("Policy file does not exist: " + policyFile.getAbsolutePath());
                 return 1;
             }
-            String policyJson = FileUtils.readFileToString(policyFile, StandardCharsets.UTF_8);
-            Gson gson = new Gson();
+
+            final String policyJson = FileUtils.readFileToString(policyFile, StandardCharsets.UTF_8);
+            final Gson gson = new Gson();
             policy = gson.fromJson(policyJson, Policy.class);
+
         } else {
             policy = createDefaultPolicy();
         }
 
-        // Initialize FilterService once
-        Properties properties = new Properties();
-        PhileasConfiguration phileasConfiguration = new PhileasConfiguration(properties);
+        final Properties properties = new Properties();
+        final PhileasConfiguration phileasConfiguration = new PhileasConfiguration(properties);
         this.filterService = new PlainTextFilterService(
                 phileasConfiguration,
                 new DefaultContextService(),
@@ -111,7 +129,8 @@ public class Phinder implements Callable<Integer> {
                 HttpClients.createDefault()
         );
 
-        List<DocumentProcessor> processors = List.of(
+        final List<DocumentProcessor> processors = List.of(
+                new LogProcessor(),
                 new PlainTextProcessor(),
                 new PdfProcessor(),
                 new WordProcessor(),
@@ -120,15 +139,15 @@ public class Phinder implements Callable<Integer> {
                 new CsvProcessor(csvDelimiter, csvQuote),
                 new RtfProcessor(),
                 new ImageProcessor(),
-                new EmailProcessor(),
-                new LogProcessor()
+                new EmailProcessor()
         );
 
         int exitCode = 0;
         int skippedCount = 0;
-        PhinderReport report = new PhinderReport();
+        final PhinderReport report = new PhinderReport();
 
         ScanLog scanLog = null;
+
         if (logFile != null || skipUnchanged || clean) {
             if (logFile == null) {
                 logFile = new File("scan");
@@ -137,28 +156,33 @@ public class Phinder implements Callable<Integer> {
         }
 
         try {
-            if (clean && scanLog != null) {
+
+            if (clean) {
                 scanLog.clean();
                 System.out.println("Scan log cleaned.");
             }
+
             if (weightsFile != null) {
+
                 if (!weightsFile.exists()) {
                     System.err.println("Weights file does not exist: " + weightsFile.getAbsolutePath());
                     return 1;
                 }
-                String weightsJson = FileUtils.readFileToString(weightsFile, StandardCharsets.UTF_8);
-                Gson gson = new Gson();
-                Map<String, Object> weightsMap = gson.fromJson(weightsJson, Map.class);
+
+                final String weightsJson = FileUtils.readFileToString(weightsFile, StandardCharsets.UTF_8);
+                final Gson gson = new Gson();
+                final Map<String, Object> weightsMap = gson.fromJson(weightsJson, Map.class);
+
                 if (weightsMap != null) {
-                    for (Map.Entry<String, Object> entry : weightsMap.entrySet()) {
-                        String key = String.valueOf(entry.getKey());
-                        Double value = Double.valueOf(String.valueOf(entry.getValue()));
+                    for (final Map.Entry<String, Object> entry : weightsMap.entrySet()) {
+                        final String key = String.valueOf(entry.getKey());
+                        final Double value = Double.valueOf(String.valueOf(entry.getValue()));
                         report.setWeight(key, value);
                     }
                 }
             }
 
-            for (File inputFile : inputFiles) {
+            for (final File inputFile : inputFiles) {
                 if (!inputFile.exists()) {
                     System.err.println("Input file/directory does not exist: " + inputFile.getAbsolutePath());
                     exitCode = 1;
@@ -170,24 +194,24 @@ public class Phinder implements Callable<Integer> {
                 }
 
                 if (inputFile.isDirectory()) {
-                    try (Stream<Path> stream = recursive ? Files.walk(inputFile.toPath()) : Files.walk(inputFile.toPath(), 1)) {
+                    try (final Stream<Path> stream = recursive ? Files.walk(inputFile.toPath()) : Files.walk(inputFile.toPath(), 1)) {
                         // Process files directly from the stream to handle millions of files without memory issues
-                        Iterable<Path> iterable = stream::iterator;
-                        for (Path path : iterable) {
+                        final Iterable<Path> iterable = stream::iterator;
+                        for (final Path path : iterable) {
                             if (Files.isRegularFile(path)) {
-                                File file = path.toFile();
+                                final File file = path.toFile();
                                 if (processFileWithCheck(file, processors, policy, report, scanLog)) {
                                     exitCode = 1;
                                 } else if (skipUnchanged && scanLog != null) {
-                                    String hash = getFileHash(file);
-                                    String previousHash = scanLog.getFileHash(file.getAbsolutePath());
+                                    final String hash = getFileHash(file);
+                                    final String previousHash = scanLog.getFileHash(file.getAbsolutePath());
                                     if (hash.equals(previousHash)) {
                                         skippedCount++;
                                     }
                                 }
                             }
                         }
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         System.err.println("Failed to walk directory: " + inputFile.getAbsolutePath() + " - " + e.getMessage());
                         exitCode = 1;
                     }
@@ -195,8 +219,8 @@ public class Phinder implements Callable<Integer> {
                     if (processFileWithCheck(inputFile, processors, policy, report, scanLog)) {
                         exitCode = 1;
                     } else if (skipUnchanged && scanLog != null) {
-                        String hash = getFileHash(inputFile);
-                        String previousHash = scanLog.getFileHash(inputFile.getAbsolutePath());
+                        final String hash = getFileHash(inputFile);
+                        final String previousHash = scanLog.getFileHash(inputFile.getAbsolutePath());
                         if (hash.equals(previousHash)) {
                             skippedCount++;
                         }
@@ -208,53 +232,73 @@ public class Phinder implements Callable<Integer> {
             generateReport(report);
 
             return exitCode;
+
         } finally {
             if (scanLog != null) {
                 scanLog.close();
                 System.out.println("Scan log saved to " + logFile.getAbsolutePath() + ".mv.db");
             }
         }
+
     }
 
-private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> processors, Policy policy, PhinderReport report, ScanLog scanLog) throws SQLException {
-    String hash = getFileHash(inputFile);
+    private boolean processFileWithCheck(final File inputFile, final List<DocumentProcessor> processors, final Policy policy, final PhinderReport report, final ScanLog scanLog) throws SQLException {
 
-    if (skipUnchanged && scanLog != null) {
-        String previousHash = scanLog.getFileHash(inputFile.getAbsolutePath());
-        if (hash != null && hash.equals(previousHash)) {
-            System.out.println("Skipping unchanged file: " + inputFile.getName());
-            return false;
+        final String hash = getFileHash(inputFile);
+
+        if (skipUnchanged && scanLog != null) {
+            final String previousHash = scanLog.getFileHash(inputFile.getAbsolutePath());
+            if (hash.equals(previousHash)) {
+                System.out.println("Skipping unchanged file: " + inputFile.getName());
+                return false;
+            }
         }
+
+        if (scanLog != null) {
+            scanLog.putFileHash(inputFile.getAbsolutePath(), hash);
+        }
+
+        return processFile(inputFile, processors, policy, report);
+
     }
 
-    if (scanLog != null && hash != null) {
-        scanLog.putFileHash(inputFile.getAbsolutePath(), hash);
-    }
+    private String getFileHash(final File file) {
 
-    return processFile(inputFile, processors, policy, report);
-}
-
-    private String getFileHash(File file) {
         try {
-            XXHashFactory factory = XXHashFactory.fastestInstance();
-            StreamingXXHash64 hasher = factory.newStreamingHash64(0); // Using seed 0
-            try (FileInputStream fis = new FileInputStream(file)) {
-                byte[] buffer = new byte[8192];
+
+            final XXHashFactory factory = XXHashFactory.fastestInstance();
+            final StreamingXXHash64 hasher = factory.newStreamingHash64(0); // Using seed 0
+            try (final FileInputStream fis = new FileInputStream(file)) {
+                final byte[] buffer = new byte[8192];
                 int read;
                 while ((read = fis.read(buffer)) != -1) {
                     hasher.update(buffer, 0, read);
                 }
             }
+
             return String.format("%016x", hasher.getValue());
-        } catch (IOException e) {
+
+        } catch (final IOException e) {
             System.err.println("Error calculating xxHash64 hash for " + file.getAbsolutePath() + ": " + e.getMessage());
             return "";
         }
+
     }
 
-    private boolean processFile(File inputFile, List<DocumentProcessor> processors, Policy policy, PhinderReport report) {
-        DocumentProcessor processor = processors.stream()
-                .filter(p -> p.supports(inputFile))
+    private boolean processFile(final File inputFile, final List<DocumentProcessor> processors, final Policy policy, final PhinderReport report) {
+
+        final Tika tika = new Tika();
+        final String mimeType;
+
+        try {
+            mimeType = tika.detect(inputFile);
+        } catch (final IOException e) {
+            System.err.println("Error detecting file type for " + inputFile.getAbsolutePath() + ": " + e.getMessage());
+            return true;
+        }
+
+        final DocumentProcessor processor = processors.stream()
+                .filter(p -> p.supports(mimeType, inputFile.getName()))
                 .findFirst()
                 .orElse(null);
 
@@ -264,8 +308,9 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
         }
 
         try {
-            List<Span> spans;
-            long wordCount;
+
+            final List<Span> spans;
+            final long wordCount;
 
             if (processor instanceof LogProcessor || processor instanceof CsvProcessor) {
                 spans = processor.process(inputFile, policy, this);
@@ -274,7 +319,7 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
                 String text = processor.extractText(inputFile);
                 if (text == null) text = "";
 
-                String combinedText = inputFile.getName() + "\n" + text;
+                final String combinedText = inputFile.getName() + "\n" + text;
                 spans = findPii(combinedText, policy);
                 wordCount = processor.countWords(text);
             }
@@ -285,7 +330,7 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
             if (spans.isEmpty()) {
                 System.out.println(" - No PII found.");
             } else {
-                for (Span span : spans) {
+                for (final Span span : spans) {
                     System.out.printf(" - %s (type: %s, confidence: %.2f)\n",
                             span.getText(), span.getFilterType(), span.getConfidence());
                 }
@@ -293,15 +338,18 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
                 System.out.printf("Density Score: %.4f\n", report.getFileDensityScore(inputFile.getAbsolutePath()));
             }
             System.out.println();
-        } catch (Exception e) {
+
+        } catch (final Exception e) {
             System.err.println("Error processing file " + inputFile.getAbsolutePath() + ": " + e.getMessage());
             return true;
         }
+
         return false;
+
     }
 
-    private void generateReport(PhinderReport report) throws Exception {
-        ReportBuilder reportBuilder = new ReportBuilder();
+    private void generateReport(final PhinderReport report) throws Exception {
+        final ReportBuilder reportBuilder = new ReportBuilder();
         reportBuilder.build(report);
     }
 
@@ -309,17 +357,17 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
 
         // TODO: Build out the full policy.
 
-        Policy policy = new Policy();
-        Identifiers identifiers = new Identifiers();
+        final Policy policy = new Policy();
+        final Identifiers identifiers = new Identifiers();
 
-        EmailAddress emailAddress = new EmailAddress();
-        EmailAddressFilterStrategy emailAddressFilterStrategy = new EmailAddressFilterStrategy();
+        final EmailAddress emailAddress = new EmailAddress();
+        final EmailAddressFilterStrategy emailAddressFilterStrategy = new EmailAddressFilterStrategy();
         emailAddressFilterStrategy.setStrategy("REDACT");
         emailAddress.setEmailAddressFilterStrategies(Collections.singletonList(emailAddressFilterStrategy));
         identifiers.setEmailAddress(emailAddress);
 
-        Ssn ssn = new Ssn();
-        SsnFilterStrategy ssnFilterStrategy = new SsnFilterStrategy();
+        final Ssn ssn = new Ssn();
+        final SsnFilterStrategy ssnFilterStrategy = new SsnFilterStrategy();
         ssnFilterStrategy.setStrategy("REDACT");
         ssn.setSsnFilterStrategies(Collections.singletonList(ssnFilterStrategy));
         identifiers.setSsn(ssn);
@@ -330,11 +378,11 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
 
     }
 
-    public List<Span> findPii(String text, Policy policy) throws Exception {
+    public List<Span> findPii(final String text, final Policy policy) throws Exception {
         if (filterService == null) {
             // Lazy initialization for cases like unit tests where call() isn't called
-            Properties properties = new Properties();
-            PhileasConfiguration phileasConfiguration = new PhileasConfiguration(properties);
+            final Properties properties = new Properties();
+            final PhileasConfiguration phileasConfiguration = new PhileasConfiguration(properties);
             this.filterService = new PlainTextFilterService(
                     phileasConfiguration,
                     new DefaultContextService(),
@@ -343,15 +391,12 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
             );
         }
 
-        // Filter the text.
-        TextFilterResult response = filterService.filter(policy, "context", text);
-
+        final TextFilterResult response = filterService.filter(policy, "context", text);
         return response.getExplanation().appliedSpans();
+
     }
 
-    // Keep the old method for backward compatibility if needed, or remove it.
-    // I'll update PhinderTest to use the new method.
-    public List<Span> findPii(String text) throws Exception {
+    public List<Span> findPii(final String text) throws Exception {
         return findPii(text, createDefaultPolicy());
     }
 

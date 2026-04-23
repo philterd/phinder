@@ -28,9 +28,12 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class CsvProcessor implements DocumentProcessor {
+
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList("text/csv");
 
     private final char delimiter;
     private final char quote;
@@ -39,36 +42,36 @@ public class CsvProcessor implements DocumentProcessor {
         this(',', '"');
     }
 
-    public CsvProcessor(char delimiter, char quote) {
+    public CsvProcessor(final char delimiter, final char quote) {
         this.delimiter = delimiter;
         this.quote = quote;
     }
 
     @Override
-    public String extractText(File file) throws IOException {
+    public String extractText(final File file) throws IOException {
         throw new UnsupportedOperationException("extractText is not supported for CSV files as it may lead to high memory usage. Use process() instead.");
     }
 
     @Override
-    public List<Span> process(File file, Policy policy, Phinder phinder) throws Exception {
+    public List<Span> process(final File file, final Policy policy, final Phinder phinder) throws Exception {
         final Policy effectivePolicy = (policy != null) ? policy : phinder.createDefaultPolicy();
-        List<Span> allSpans = new ArrayList<>();
+        final List<Span> allSpans = new ArrayList<>();
 
         // Check filename for PII
         allSpans.addAll(phinder.findPii(file.getName(), effectivePolicy));
 
-        CSVFormat format = CSVFormat.DEFAULT.builder()
+        final CSVFormat format = CSVFormat.DEFAULT.builder()
                 .setDelimiter(delimiter)
                 .setQuote(quote)
                 .build();
 
-        try (Reader reader = new FileReader(file, StandardCharsets.UTF_8);
-             CSVParser csvParser = new CSVParser(reader, format)) {
+        try (final Reader reader = new FileReader(file, StandardCharsets.UTF_8);
+             final CSVParser csvParser = new CSVParser(reader, format)) {
 
-            for (CSVRecord csvRecord : csvParser) {
-                String lineText = String.join(" ", csvRecord.toList());
+            for (final CSVRecord csvRecord : csvParser) {
+                final String lineText = String.join(" ", csvRecord.toList());
                 if (!lineText.trim().isEmpty()) {
-                    List<Span> lineSpans = phinder.findPii(lineText, effectivePolicy);
+                    final List<Span> lineSpans = phinder.findPii(lineText, effectivePolicy);
                     allSpans.addAll(lineSpans);
                 }
             }
@@ -78,17 +81,17 @@ public class CsvProcessor implements DocumentProcessor {
     }
 
     @Override
-    public long getWordCount(File file) throws IOException {
+    public long getWordCount(final File file) throws IOException {
         long wordCount = 0;
-        CSVFormat format = CSVFormat.DEFAULT.builder()
+        final CSVFormat format = CSVFormat.DEFAULT.builder()
                 .setDelimiter(delimiter)
                 .setQuote(quote)
                 .build();
 
-        try (Reader reader = new FileReader(file, StandardCharsets.UTF_8);
-             CSVParser csvParser = new CSVParser(reader, format)) {
-            for (CSVRecord csvRecord : csvParser) {
-                for (String field : csvRecord) {
+        try (final Reader reader = new FileReader(file, StandardCharsets.UTF_8);
+             final CSVParser csvParser = new CSVParser(reader, format)) {
+            for (final CSVRecord csvRecord : csvParser) {
+                for (final String field : csvRecord) {
                     wordCount += countWords(field);
                 }
             }
@@ -97,8 +100,8 @@ public class CsvProcessor implements DocumentProcessor {
     }
 
     @Override
-    public boolean supports(File file) {
-        return file.getName().toLowerCase().endsWith(".csv");
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

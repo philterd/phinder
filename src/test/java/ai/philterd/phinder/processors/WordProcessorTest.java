@@ -34,42 +34,42 @@ public class WordProcessorTest {
 
     @Test
     public void testSupports() {
-        WordProcessor processor = new WordProcessor();
-        assertTrue(processor.supports(new File("test.docx")));
-        assertTrue(processor.supports(new File("test.doc")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final WordProcessor processor = new WordProcessor();
+        assertTrue(processor.supports("application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
+        assertTrue(processor.supports("application/msword"));
+        assertFalse(processor.supports("text/plain"));
     }
 
     @Test
     public void testExtractTextDocx() throws Exception {
-        File docxFile = tempDir.resolve("test.docx").toFile();
-        String content = "Word document content with test@example.com";
+        final File docxFile = tempDir.resolve("test.docx").toFile();
+        final String content = "Word document content with test@example.com";
 
-        try (XWPFDocument document = new XWPFDocument();
-             FileOutputStream out = new FileOutputStream(docxFile)) {
-            XWPFParagraph paragraph = document.createParagraph();
-            XWPFRun run = paragraph.createRun();
+        try (final XWPFDocument document = new XWPFDocument();
+             final FileOutputStream out = new FileOutputStream(docxFile)) {
+            final XWPFParagraph paragraph = document.createParagraph();
+            final XWPFRun run = paragraph.createRun();
             run.setText(content);
             document.write(out);
         }
 
-        WordProcessor processor = new WordProcessor();
-        String extracted = processor.extractText(docxFile);
+        final WordProcessor processor = new WordProcessor();
+        final String extracted = processor.extractText(docxFile);
         assertTrue(extracted.contains("test@example.com"));
     }
 
     @Test
     public void testWordCount() throws Exception {
-        File docxFile = tempDir.resolve("test.docx").toFile();
-        try (XWPFDocument document = new XWPFDocument();
-             FileOutputStream out = new FileOutputStream(docxFile)) {
-            XWPFParagraph paragraph = document.createParagraph();
-            XWPFRun run = paragraph.createRun();
+        final File docxFile = tempDir.resolve("test.docx").toFile();
+        try (final XWPFDocument document = new XWPFDocument();
+             final FileOutputStream out = new FileOutputStream(docxFile)) {
+            final XWPFParagraph paragraph = document.createParagraph();
+            final XWPFRun run = paragraph.createRun();
             run.setText("This is a six word sentence.");
             document.write(out);
         }
 
-        WordProcessor processor = new WordProcessor();
+        final WordProcessor processor = new WordProcessor();
         assertEquals(6, processor.getWordCount(docxFile));
     }
 }

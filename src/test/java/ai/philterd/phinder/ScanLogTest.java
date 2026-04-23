@@ -30,12 +30,12 @@ public class ScanLogTest {
 
     @Test
     public void testScanLogLifecycle() throws Exception {
-        File dbFile = tempDir.resolve("scan").toFile();
-        ScanLog scanLog = new ScanLog(dbFile);
+        final File dbFile = tempDir.resolve("scan").toFile();
+        final ScanLog scanLog = new ScanLog(dbFile);
         
         try {
-            String filePath = "/path/to/file.txt";
-            String hash = "hash123";
+            final String filePath = "/path/to/file.txt";
+            final String hash = "hash123";
             
             assertNull(scanLog.getFileHash(filePath));
             

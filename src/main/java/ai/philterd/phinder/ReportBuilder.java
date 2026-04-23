@@ -36,12 +36,12 @@ public class ReportBuilder {
     public ReportBuilder() {
     }
 
-    public void build(PhinderReport report) throws Exception {
+    public void build(final PhinderReport report) throws Exception {
         // Always generate the HTML report.
-        File htmlReportFile = new File("report.html");
+        final File htmlReportFile = new File("report.html");
 
         // Always generate the JSON report.
-        File jsonReportFile = new File("report.json");
+        final File jsonReportFile = new File("report.json");
 
         generateHtmlReport(report, htmlReportFile);
         System.out.println("HTML report generated: " + htmlReportFile.getAbsolutePath());
@@ -50,11 +50,11 @@ public class ReportBuilder {
         System.out.println("JSON report generated: " + jsonReportFile.getAbsolutePath());
     }
 
-    public static void generateJsonReport(PhinderReport report, File file) throws Exception {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String readableTimestamp = LocalDateTime.ofInstant(Instant.ofEpochMilli(report.getTimestamp()), ZoneId.systemDefault()).format(formatter);
+    public static void generateJsonReport(final PhinderReport report, final File file) throws Exception {
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        final String readableTimestamp = LocalDateTime.ofInstant(Instant.ofEpochMilli(report.getTimestamp()), ZoneId.systemDefault()).format(formatter);
 
-        Map<String, Object> data = new HashMap<>();
+        final Map<String, Object> data = new HashMap<>();
         data.put("timestamp", readableTimestamp);
         data.put("weights", report.getWeights());
         data.put("aggregateMagnitudeScore", report.getAggregateMagnitudeScore());
@@ -62,9 +62,9 @@ public class ReportBuilder {
         data.put("skippedFiles", report.getSkippedFiles());
         data.put("aggregateCounts", report.getAggregateCounts());
 
-        Map<String, Object> perFileDetails = new HashMap<>();
+        final Map<String, Object> perFileDetails = new HashMap<>();
         report.getPerFileCounts().forEach((fileName, counts) -> {
-            Map<String, Object> fileDetail = new HashMap<>();
+            final Map<String, Object> fileDetail = new HashMap<>();
             fileDetail.put("magnitudeScore", report.getFileMagnitudeScore(fileName));
             fileDetail.put("densityScore", report.getFileDensityScore(fileName));
             fileDetail.put("counts", counts);
@@ -72,14 +72,14 @@ public class ReportBuilder {
         });
         data.put("perFileDetails", perFileDetails);
 
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String json = gson.toJson(data);
+        final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        final String json = gson.toJson(data);
 
         FileUtils.writeStringToFile(file, json, StandardCharsets.UTF_8);
     }
 
-    public static void generateHtmlReport(PhinderReport report, File file) throws Exception {
-        StringBuilder sb = new StringBuilder();
+    public static void generateHtmlReport(final PhinderReport report, final File file) throws Exception {
+        final StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html>\n");
         sb.append("<html lang=\"en\">\n");
         sb.append("<head>\n");
@@ -114,7 +114,7 @@ public class ReportBuilder {
         sb.append("        </section>\n");
 
         // Best Candidates for Redaction Testing
-        List<String> files = new ArrayList<>(report.getPerFileCounts().keySet());
+        final List<String> files = new ArrayList<>(report.getPerFileCounts().keySet());
         if (!files.isEmpty()) {
             // Sort by Magnitude Score (desc) then by Variety (desc) then by Density Score (desc)
             files.sort((f1, f2) -> {
@@ -128,7 +128,7 @@ public class ReportBuilder {
                 return compare;
             });
 
-            List<String> bestCandidates = files.subList(0, Math.min(20, files.size()));
+            final List<String> bestCandidates = files.subList(0, Math.min(20, files.size()));
 
             sb.append("        <section class=\"mb-12\">\n");
             sb.append("            <h2 class=\"text-2xl font-bold text-gray-800 mb-6\">Best Candidates for Redaction Testing</h2>\n");
@@ -144,7 +144,7 @@ public class ReportBuilder {
             sb.append("                    </thead>\n");
             sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
 
-            for (String fileName : bestCandidates) {
+            for (final String fileName : bestCandidates) {
                 sb.append("                        <tr>\n");
                 sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900 break-all\">%s</td>\n", fileName));
                 sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%d</td>\n", report.getPerFileCounts().get(fileName).size()));
@@ -175,24 +175,24 @@ public class ReportBuilder {
         sb.append("                    </thead>\n");
         sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
 
-        Map<String, Integer> aggregate = report.getAggregateCounts();
-        Map<String, Double> weights = report.getWeights();
-        Map<String, PhinderReport.ConfidenceStats> aggregateConfidence = report.getAggregateConfidence();
+        final Map<String, Integer> aggregate = report.getAggregateCounts();
+        final Map<String, Double> weights = report.getWeights();
+        final Map<String, PhinderReport.ConfidenceStats> aggregateConfidence = report.getAggregateConfidence();
 
         if (aggregate.isEmpty()) {
             sb.append("                        <tr>\n");
             sb.append("                            <td colspan=\"5\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
             sb.append("                        </tr>\n");
         } else {
-            List<String> sortedTypes = new ArrayList<>(aggregate.keySet());
+            final List<String> sortedTypes = new ArrayList<>(aggregate.keySet());
             Collections.sort(sortedTypes);
 
-            for (String type : sortedTypes) {
-                int count = aggregate.get(type);
-                double weight = weights.getOrDefault(type, 1.0);
-                double magnitude = count * weight;
-                PhinderReport.ConfidenceStats stats = aggregateConfidence.get(type);
-                String confidenceInterval = stats != null ?
+            for (final String type : sortedTypes) {
+                final int count = aggregate.get(type);
+                final double weight = weights.getOrDefault(type, 1.0);
+                final double magnitude = count * weight;
+                final PhinderReport.ConfidenceStats stats = aggregateConfidence.get(type);
+                final String confidenceInterval = stats != null ?
                         String.format("%.2f - %.2f (avg: %.2f)", stats.getMin(), stats.getMax(), stats.getAverage()) : "N/A";
 
                 sb.append("                        <tr>\n");
@@ -215,11 +215,11 @@ public class ReportBuilder {
         sb.append("        <section>\n");
         sb.append("            <h2 class=\"text-2xl font-bold text-gray-800 mb-6\">Per-File Details</h2>\n");
 
-        List<String> sortedFiles = new ArrayList<>(report.getPerFileCounts().keySet());
+        final List<String> sortedFiles = new ArrayList<>(report.getPerFileCounts().keySet());
         Collections.sort(sortedFiles);
 
-        for (String fileName : sortedFiles) {
-            Map<String, Integer> counts = report.getPerFileCounts().get(fileName);
+        for (final String fileName : sortedFiles) {
+            final Map<String, Integer> counts = report.getPerFileCounts().get(fileName);
             sb.append("            <div class=\"bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8\">\n");
             sb.append("                <div class=\"bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-wrap justify-between items-center\">\n");
             sb.append(String.format("                    <h3 class=\"text-lg font-semibold text-gray-800 break-all mr-4\">%s</h3>\n", fileName));
@@ -245,16 +245,16 @@ public class ReportBuilder {
                 sb.append("                            <td colspan=\"5\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
                 sb.append("                        </tr>\n");
             } else {
-                List<String> sortedTypes = new ArrayList<>(counts.keySet());
+                final List<String> sortedTypes = new ArrayList<>(counts.keySet());
                 Collections.sort(sortedTypes);
-                Map<String, PhinderReport.ConfidenceStats> fileConfStats = report.getPerFileConfidence().get(fileName);
+                final Map<String, PhinderReport.ConfidenceStats> fileConfStats = report.getPerFileConfidence().get(fileName);
 
-                for (String type : sortedTypes) {
-                    int count = counts.get(type);
-                    double weight = weights.getOrDefault(type, 1.0);
-                    double magnitude = count * weight;
-                    PhinderReport.ConfidenceStats stats = fileConfStats != null ? fileConfStats.get(type) : null;
-                    String confidenceInterval = stats != null ?
+                for (final String type : sortedTypes) {
+                    final int count = counts.get(type);
+                    final double weight = weights.getOrDefault(type, 1.0);
+                    final double magnitude = count * weight;
+                    final PhinderReport.ConfidenceStats stats = fileConfStats != null ? fileConfStats.get(type) : null;
+                    final String confidenceInterval = stats != null ?
                             String.format("%.2f - %.2f (avg: %.2f)", stats.getMin(), stats.getMax(), stats.getAverage()) : "N/A";
 
                     sb.append("                        <tr>\n");

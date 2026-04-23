@@ -29,19 +29,19 @@ public class EmailProcessorTest {
 
     @Test
     public void testSupports() {
-        EmailProcessor processor = new EmailProcessor();
-        assertTrue(processor.supports(new File("test.eml")));
-        assertTrue(processor.supports(new File("test.msg")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final EmailProcessor processor = new EmailProcessor();
+        assertTrue(processor.supports("message/rfc822"));
+        assertTrue(processor.supports("application/vnd.ms-outlook"));
+        assertFalse(processor.supports("text/plain"));
     }
 
     @Test
     public void testExtractTextEml() throws Exception {
         // We use the existing test.eml resource for testing
-        File emlFile = new File("src/test/resources/test.eml");
+        final File emlFile = new File("src/test/resources/test.eml");
         if (emlFile.exists()) {
-            EmailProcessor processor = new EmailProcessor();
-            String extracted = processor.extractText(emlFile);
+            final EmailProcessor processor = new EmailProcessor();
+            final String extracted = processor.extractText(emlFile);
             assertNotNull(extracted);
             assertTrue(extracted.contains("jeff@example.com") || extracted.contains("Subject:"));
         }
@@ -50,13 +50,13 @@ public class EmailProcessorTest {
     @Test
     public void testExtractTextMsg() throws Exception {
         // test.msg is a placeholder but let's see if it works or handles it gracefully
-        File msgFile = new File("src/test/resources/test.msg");
+        final File msgFile = new File("src/test/resources/test.msg");
         if (msgFile.exists()) {
-            EmailProcessor processor = new EmailProcessor();
+            final EmailProcessor processor = new EmailProcessor();
             try {
-                String extracted = processor.extractText(msgFile);
+                final String extracted = processor.extractText(msgFile);
                 assertNotNull(extracted);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // Ignore if it's just a placeholder that fails to parse
             }
         }
@@ -64,10 +64,10 @@ public class EmailProcessorTest {
 
     @Test
     public void testWordCount() throws Exception {
-        File emlFile = new File("src/test/resources/test.eml");
+        final File emlFile = new File("src/test/resources/test.eml");
         if (emlFile.exists()) {
-            EmailProcessor processor = new EmailProcessor();
-            long count = processor.getWordCount(emlFile);
+            final EmailProcessor processor = new EmailProcessor();
+            final long count = processor.getWordCount(emlFile);
             assertTrue(count > 0);
         }
     }

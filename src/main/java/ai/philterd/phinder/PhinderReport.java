@@ -38,7 +38,7 @@ public class PhinderReport {
         private double sum = 0;
         private int count = 0;
 
-        public void add(double confidence) {
+        public void add(final double confidence) {
             min = Math.min(min, confidence);
             max = Math.max(max, confidence);
             sum += confidence;
@@ -67,13 +67,13 @@ public class PhinderReport {
         // Default weight is 1.0 for all types
     }
 
-    public void addFileResult(String filePath, List<Span> spans, long wordCount) {
-        Map<String, Integer> counts = new HashMap<>();
-        Map<String, ConfidenceStats> fileConfStats = new HashMap<>();
+    public void addFileResult(final String filePath, final List<Span> spans, final long wordCount) {
+        final Map<String, Integer> counts = new HashMap<>();
+        final Map<String, ConfidenceStats> fileConfStats = new HashMap<>();
 
-        for (Span span : spans) {
-            String type = span.getFilterType().getType();
-            double confidence = span.getConfidence();
+        for (final Span span : spans) {
+            final String type = span.getFilterType().getType();
+            final double confidence = span.getConfidence();
 
             counts.put(type, counts.getOrDefault(type, 0) + 1);
             aggregateCounts.put(type, aggregateCounts.getOrDefault(type, 0) + 1);
@@ -94,13 +94,13 @@ public class PhinderReport {
         return calculateMagnitudeScore(aggregateCounts);
     }
 
-    public double getFileMagnitudeScore(String filePath) {
+    public double getFileMagnitudeScore(final String filePath) {
         return calculateMagnitudeScore(perFileCounts.getOrDefault(filePath, new HashMap<>()));
     }
 
-    public double getFileDensityScore(String filePath) {
-        double magnitudeScore = getFileMagnitudeScore(filePath);
-        long wordCount = perFileWordCounts.getOrDefault(filePath, 0L);
+    public double getFileDensityScore(final String filePath) {
+        final double magnitudeScore = getFileMagnitudeScore(filePath);
+        final long wordCount = perFileWordCounts.getOrDefault(filePath, 0L);
         if (wordCount == 0) {
             return 0;
         }
@@ -108,18 +108,18 @@ public class PhinderReport {
     }
 
     public double getAggregateDensityScore() {
-        double aggregateMagnitudeScore = getAggregateMagnitudeScore();
-        long totalWordCount = perFileWordCounts.values().stream().mapToLong(Long::longValue).sum();
+        final double aggregateMagnitudeScore = getAggregateMagnitudeScore();
+        final long totalWordCount = perFileWordCounts.values().stream().mapToLong(Long::longValue).sum();
         if (totalWordCount == 0) {
             return 0;
         }
         return aggregateMagnitudeScore / totalWordCount;
     }
 
-    private double calculateMagnitudeScore(Map<String, Integer> counts) {
+    private double calculateMagnitudeScore(final Map<String, Integer> counts) {
         double score = 0;
-        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
-            double weight = weights.getOrDefault(entry.getKey(), 1.0);
+        for (final Map.Entry<String, Integer> entry : counts.entrySet()) {
+            final double weight = weights.getOrDefault(entry.getKey(), 1.0);
             score += weight * entry.getValue();
         }
         return score;
@@ -141,7 +141,7 @@ public class PhinderReport {
         return perFileConfidence;
     }
 
-    public void setWeight(String piiType, double weight) {
+    public void setWeight(final String piiType, final double weight) {
         weights.put(piiType, weight);
     }
 
@@ -157,7 +157,7 @@ public class PhinderReport {
         return skippedFiles;
     }
 
-    public void setSkippedFiles(int skippedFiles) {
+    public void setSkippedFiles(final int skippedFiles) {
         this.skippedFiles = skippedFiles;
     }
 }

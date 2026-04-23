@@ -36,13 +36,13 @@ public class ReportBuilderTest {
 
     @Test
     public void testJsonReport() throws Exception {
-        PhinderReport report = createTestReport();
+        final PhinderReport report = createTestReport();
         report.setWeight("email-address", 2.0);
-        File reportFile = tempDir.resolve("report.json").toFile();
+        final File reportFile = tempDir.resolve("report.json").toFile();
         
         ReportBuilder.generateJsonReport(report, reportFile);
         
-        String content = FileUtils.readFileToString(reportFile, StandardCharsets.UTF_8);
+        final String content = FileUtils.readFileToString(reportFile, StandardCharsets.UTF_8);
         assertTrue(content.contains("\"aggregateCounts\""));
         assertTrue(content.contains("\"email-address\": 2"));
         // Matches yyyy-MM-dd HH:mm:ss
@@ -55,13 +55,13 @@ public class ReportBuilderTest {
 
     @Test
     public void testAlwaysGenerateReports() throws Exception {
-        PhinderReport report = createTestReport();
+        final PhinderReport report = createTestReport();
         
-        ReportBuilder builder = new ReportBuilder();
+        final ReportBuilder builder = new ReportBuilder();
         builder.build(report);
         
-        File htmlReport = new File("report.html");
-        File jsonReport = new File("report.json");
+        final File htmlReport = new File("report.html");
+        final File jsonReport = new File("report.json");
         
         assertTrue(htmlReport.exists(), "Default HTML report should always be generated");
         assertTrue(jsonReport.exists(), "Default JSON report should always be generated");
@@ -72,12 +72,12 @@ public class ReportBuilderTest {
 
     @Test
     public void testHtmlReport() throws Exception {
-        PhinderReport report = createTestReport();
-        File reportFile = tempDir.resolve("report.html").toFile();
+        final PhinderReport report = createTestReport();
+        final File reportFile = tempDir.resolve("report.html").toFile();
         
         ReportBuilder.generateHtmlReport(report, reportFile);
         
-        String content = FileUtils.readFileToString(reportFile, StandardCharsets.UTF_8);
+        final String content = FileUtils.readFileToString(reportFile, StandardCharsets.UTF_8);
         assertTrue(content.contains("<!DOCTYPE html>"));
         assertTrue(content.contains("email-address"));
         assertTrue(content.contains("https://www.philterd.ai"));
@@ -89,9 +89,9 @@ public class ReportBuilderTest {
 
 
     private PhinderReport createTestReport() {
-        PhinderReport report = new PhinderReport();
-        Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
-        Span span2 = Span.make(15, 25, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final PhinderReport report = new PhinderReport();
+        final Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final Span span2 = Span.make(15, 25, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
         report.addFileResult("test.txt", List.of(span1, span2), 100);
         return report;
     }

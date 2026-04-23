@@ -35,20 +35,22 @@ public class LogProcessorTest {
 
     @Test
     public void testSupports() {
-        LogProcessor processor = new LogProcessor();
-        assertTrue(processor.supports(new File("test.log")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final LogProcessor processor = new LogProcessor();
+        assertTrue(processor.supports("text/x-log"));
+        assertFalse(processor.supports("text/plain"));
+        assertTrue(processor.supports("text/plain", "test.log"));
+        assertFalse(processor.supports("text/plain", "test.txt"));
     }
 
     @Test
     public void testProcess() throws Exception {
-        File logFile = tempDir.resolve("test.log").toFile();
-        String content = "2026-04-22 INFO User test@example.com logged in\n" +
+        final File logFile = tempDir.resolve("test.log").toFile();
+        final String content = "2026-04-22 INFO User test@example.com logged in\n" +
                          "2026-04-22 ERROR Failed for admin@example.com";
         FileUtils.writeStringToFile(logFile, content, StandardCharsets.UTF_8);
 
-        LogProcessor processor = new LogProcessor();
-        List<Span> spans = processor.process(logFile, null, new Phinder());
+        final LogProcessor processor = new LogProcessor();
+        final List<Span> spans = processor.process(logFile, null, new Phinder());
 
         assertFalse(spans.isEmpty());
         assertTrue(spans.stream().anyMatch(s -> s.getText().equals("test@example.com")));
@@ -57,11 +59,11 @@ public class LogProcessorTest {
 
     @Test
     public void testWordCount() throws Exception {
-        File logFile = tempDir.resolve("test.log").toFile();
-        String content = "Line one\nLine two with five words";
+        final File logFile = tempDir.resolve("test.log").toFile();
+        final String content = "Line one\nLine two with five words";
         FileUtils.writeStringToFile(logFile, content, StandardCharsets.UTF_8);
 
-        LogProcessor processor = new LogProcessor();
+        final LogProcessor processor = new LogProcessor();
         assertEquals(7, processor.getWordCount(logFile));
     }
 }

@@ -35,46 +35,46 @@ public class CsvProcessorTest {
 
     @Test
     public void testSupports() {
-        CsvProcessor processor = new CsvProcessor(',', '"');
-        assertTrue(processor.supports(new File("test.csv")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final CsvProcessor processor = new CsvProcessor(',', '"');
+        assertTrue(processor.supports("text/csv"));
+        assertFalse(processor.supports("text/plain"));
     }
 
     @Test
     public void testProcessDefault() throws Exception {
-        File csvFile = tempDir.resolve("test.csv").toFile();
-        String content = "name,email\nJohn Doe,john@example.com";
+        final File csvFile = tempDir.resolve("test.csv").toFile();
+        final String content = "name,email\nJohn Doe,john@example.com";
         FileUtils.writeStringToFile(csvFile, content, StandardCharsets.UTF_8);
 
-        CsvProcessor processor = new CsvProcessor(',', '"');
-        List<Span> spans = processor.process(csvFile, null, new Phinder());
+        final CsvProcessor processor = new CsvProcessor(',', '"');
+        final List<Span> spans = processor.process(csvFile, null, new Phinder());
 
         assertFalse(spans.isEmpty());
-        boolean found = spans.stream().anyMatch(s -> s.getText().equals("john@example.com"));
+        final boolean found = spans.stream().anyMatch(s -> s.getText().equals("john@example.com"));
         assertTrue(found);
     }
 
     @Test
     public void testProcessCustomDelimiter() throws Exception {
-        File csvFile = tempDir.resolve("test.csv").toFile();
-        String content = "name|email\nJohn Doe|john@example.com";
+        final File csvFile = tempDir.resolve("test.csv").toFile();
+        final String content = "name|email\nJohn Doe|john@example.com";
         FileUtils.writeStringToFile(csvFile, content, StandardCharsets.UTF_8);
 
-        CsvProcessor processor = new CsvProcessor('|', '"');
-        List<Span> spans = processor.process(csvFile, null, new Phinder());
+        final CsvProcessor processor = new CsvProcessor('|', '"');
+        final List<Span> spans = processor.process(csvFile, null, new Phinder());
 
         assertFalse(spans.isEmpty());
-        boolean found = spans.stream().anyMatch(s -> s.getText().equals("john@example.com"));
+        final boolean found = spans.stream().anyMatch(s -> s.getText().equals("john@example.com"));
         assertTrue(found);
     }
 
     @Test
     public void testWordCount() throws Exception {
-        File csvFile = tempDir.resolve("test.csv").toFile();
-        String content = "col1,col2,col3\nval1,val2,val3\nval4,val5,val6";
+        final File csvFile = tempDir.resolve("test.csv").toFile();
+        final String content = "col1,col2,col3\nval1,val2,val3\nval4,val5,val6";
         FileUtils.writeStringToFile(csvFile, content, StandardCharsets.UTF_8);
 
-        CsvProcessor processor = new CsvProcessor(',', '"');
+        final CsvProcessor processor = new CsvProcessor(',', '"');
         assertEquals(9, processor.getWordCount(csvFile));
     }
 }

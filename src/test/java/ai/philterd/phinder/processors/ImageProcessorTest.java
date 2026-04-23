@@ -23,11 +23,13 @@ public class ImageProcessorTest {
 
     @Test
     public void testSupports() {
-        ImageProcessor processor = new ImageProcessor();
-        assertTrue(processor.supports(new File("test.png")));
-        assertTrue(processor.supports(new File("test.jpg")));
-        assertTrue(processor.supports(new File("test.jpeg")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final ImageProcessor processor = new ImageProcessor();
+        assertTrue(processor.supports("image/png", "test.png"));
+        assertTrue(processor.supports("image/jpeg", "test.jpg"));
+        assertTrue(processor.supports("image/jpeg", "test.jpeg"));
+        assertFalse(processor.supports("image/gif", "test.gif"));
+        assertFalse(processor.supports("image/png", "test.bmp"));
+        assertFalse(processor.supports("text/plain", "test.txt"));
     }
 
     // Actual OCR test might fail if Tesseract is not installed in the environment.
