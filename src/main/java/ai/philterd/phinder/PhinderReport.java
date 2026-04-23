@@ -29,6 +29,7 @@ public class PhinderReport {
     private final Map<String, Double> weights = new HashMap<>();
     private final Map<String, ConfidenceStats> aggregateConfidence = new HashMap<>();
     private final Map<String, Map<String, ConfidenceStats>> perFileConfidence = new HashMap<>();
+    private final long timestamp;
     private int skippedFiles = 0;
 
     public static class ConfidenceStats {
@@ -62,6 +63,7 @@ public class PhinderReport {
     }
 
     public PhinderReport() {
+        this.timestamp = System.currentTimeMillis();
         // Default weight is 1.0 for all types
     }
 
@@ -145,6 +147,10 @@ public class PhinderReport {
 
     public Map<String, Double> getWeights() {
         return weights;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
     }
 
     public int getSkippedFiles() {

@@ -18,15 +18,12 @@ package ai.philterd.phinder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.io.FileUtils;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,88 +33,30 @@ import java.util.Map;
 
 public class ReportBuilder {
 
-    private final File reportFile;
-    private final String reportFormat;
-
-    public ReportBuilder(File reportFile, String reportFormat) {
-        this.reportFile = reportFile;
-        this.reportFormat = reportFormat;
+    public ReportBuilder() {
     }
 
     public void build(PhinderReport report) throws Exception {
         // Always generate the HTML report.
         File htmlReportFile = new File("report.html");
 
-        // If the user specified a report file and it is HTML, use that.
-        // Or if they specified the format as html, use the reportFile.
-        if (reportFile != null && (reportFile.getName().endsWith(".html") || "html".equalsIgnoreCase(reportFormat))) {
-            htmlReportFile = reportFile;
-        }
+        // Always generate the JSON report.
+        File jsonReportFile = new File("report.json");
 
         generateHtmlReport(report, htmlReportFile);
         System.out.println("HTML report generated: " + htmlReportFile.getAbsolutePath());
 
-        // Generate the other report if it's specified.
-        if (reportFile != null || reportFormat != null) {
-            // Determine the format if not explicitly provided
-            String format = reportFormat;
-            if (format == null) {
-                if (reportFile.getName().endsWith(".pdf")) format = "pdf";
-                else if (reportFile.getName().endsWith(".json")) format = "json";
-                else if (reportFile.getName().endsWith(".html")) format = "html";
-                else format = "text";
-            }
-
-            File otherReportFile = reportFile != null ? reportFile : new File("report.txt");
-
-            if ("pdf".equalsIgnoreCase(format)) {
-                generatePdfReport(report, otherReportFile);
-                System.out.println("PDF report generated: " + otherReportFile.getAbsolutePath());
-            } else if ("json".equalsIgnoreCase(format)) {
-                generateJsonReport(report, otherReportFile);
-                System.out.println("JSON report generated: " + otherReportFile.getAbsolutePath());
-            } else if ("text".equalsIgnoreCase(format)) {
-                generateTextReport(report, otherReportFile);
-                System.out.println("Text report generated: " + otherReportFile.getAbsolutePath());
-            } else if ("html".equalsIgnoreCase(format)) {
-                // Already generated above, but if it was the only one requested via -r or -f, we don't need to do more.
-            }
-        }
-    }
-
-    public static void generateTextReport(PhinderReport report, File file) throws Exception {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Phinder PII Report\n");
-        sb.append("==================\n\n");
-
-        sb.append(String.format("Aggregate Magnitude Score: %.2f\n", report.getAggregateMagnitudeScore()));
-        sb.append(String.format("Aggregate Density Score: %.4f\n", report.getAggregateDensityScore()));
-        sb.append(String.format("Files Skipped: %d\n\n", report.getSkippedFiles()));
-
-        sb.append("Aggregate Counts:\n");
-        Map<String, Integer> aggregate = report.getAggregateCounts();
-        if (aggregate.isEmpty()) {
-            sb.append(" - No PII detected.\n");
-        } else {
-            aggregate.forEach((type, count) -> sb.append(String.format(" - %s: %d\n", type, count)));
-        }
-
-        sb.append("\nPer-File Details:\n");
-        report.getPerFileCounts().forEach((fileName, counts) -> {
-            sb.append(String.format(" - %s (Magnitude Score: %.2f, Density Score: %.4f):\n",
-                    fileName, report.getFileMagnitudeScore(fileName), report.getFileDensityScore(fileName)));
-            if (counts.isEmpty()) {
-                sb.append("   - No PII detected.\n");
-            } else {
-                counts.forEach((type, count) -> sb.append(String.format("   - %s: %d\n", type, count)));
-            }
-        });
-
-        FileUtils.writeStringToFile(file, sb.toString(), StandardCharsets.UTF_8);
+        generateJsonReport(report, jsonReportFile);
+        System.out.println("JSON report generated: " + jsonReportFile.getAbsolutePath());
     }
 
     public static void generateJsonReport(PhinderReport report, File file) throws Exception {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String readableTimestamp = LocalDateTime.ofInstant(Instant.ofEpochMilli(report.getTimestamp()), ZoneId.systemDefault()).format(formatter);
+
         Map<String, Object> data = new HashMap<>();
+        data.put("timestamp", readableTimestamp);
+        data.put("weights", report.getWeights());
         data.put("aggregateMagnitudeScore", report.getAggregateMagnitudeScore());
         data.put("aggregateDensityScore", report.getAggregateDensityScore());
         data.put("skippedFiles", report.getSkippedFiles());
@@ -139,120 +78,6 @@ public class ReportBuilder {
         FileUtils.writeStringToFile(file, json, StandardCharsets.UTF_8);
     }
 
-    public static void generatePdfReport(PhinderReport report, File file) throws Exception {
-        try (PDDocument document = new PDDocument()) {
-            PDPage page = new PDPage();
-            document.addPage(page);
-
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 16);
-                contentStream.newLineAtOffset(50, 750);
-                contentStream.showText("Phinder PII Report");
-                contentStream.endText();
-
-                int y = 720;
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText(String.format("Aggregate Magnitude Score: %.2f", report.getAggregateMagnitudeScore()));
-                contentStream.endText();
-                y -= 20;
-
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText(String.format("Aggregate Density Score: %.4f", report.getAggregateDensityScore()));
-                contentStream.endText();
-                y -= 20;
-
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText(String.format("Files Skipped: %d", report.getSkippedFiles()));
-                contentStream.endText();
-                y -= 30;
-
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText("Aggregate Counts:");
-                contentStream.endText();
-                y -= 20;
-
-                Map<String, Integer> aggregate = report.getAggregateCounts();
-                if (aggregate.isEmpty()) {
-                    contentStream.beginText();
-                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                    contentStream.newLineAtOffset(60, y);
-                    contentStream.showText("- No PII detected.");
-                    contentStream.endText();
-                    y -= 20;
-                } else {
-                    for (Map.Entry<String, Integer> entry : aggregate.entrySet()) {
-                        contentStream.beginText();
-                        contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                        contentStream.newLineAtOffset(60, y);
-                        contentStream.showText(String.format("- %s: %d", entry.getKey(), entry.getValue()));
-                        contentStream.endText();
-                        y -= 20;
-                    }
-                }
-
-                y -= 10;
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText("Per-File Details:");
-                contentStream.endText();
-                y -= 20;
-
-                for (Map.Entry<String, Map<String, Integer>> fileEntry : report.getPerFileCounts().entrySet()) {
-                    String fileName = fileEntry.getKey();
-                    contentStream.beginText();
-                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                    contentStream.newLineAtOffset(60, y);
-                    contentStream.showText(String.format("- %s", fileName));
-                    contentStream.endText();
-                    y -= 15;
-
-                    contentStream.beginText();
-                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
-                    contentStream.newLineAtOffset(70, y);
-                    contentStream.showText(String.format("Magnitude Score: %.2f, Density Score: %.4f",
-                            report.getFileMagnitudeScore(fileName), report.getFileDensityScore(fileName)));
-                    contentStream.endText();
-                    y -= 15;
-
-                    Map<String, Integer> counts = fileEntry.getValue();
-                    if (counts.isEmpty()) {
-                        contentStream.beginText();
-                        contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
-                        contentStream.newLineAtOffset(80, y);
-                        contentStream.showText("No PII detected.");
-                        contentStream.endText();
-                        y -= 15;
-                    } else {
-                        for (Map.Entry<String, Integer> countEntry : counts.entrySet()) {
-                            contentStream.beginText();
-                            contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
-                            contentStream.newLineAtOffset(80, y);
-                            contentStream.showText(String.format("%s: %d", countEntry.getKey(), countEntry.getValue()));
-                            contentStream.endText();
-                            y -= 15;
-                        }
-                    }
-
-                    if (y < 50) {
-                        break;
-                    }
-                }
-            }
-
-            document.save(file);
-        }
-    }
-
     public static void generateHtmlReport(PhinderReport report, File file) throws Exception {
         StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html>\n");
@@ -269,7 +94,7 @@ public class ReportBuilder {
         sb.append("            <h1 class=\"text-4xl font-extrabold text-blue-800 mb-2\">Phinder PII Report</h1>\n");
         sb.append("            <p class=\"text-lg text-gray-600\">Personally Identifiable Information (PII) detection summary.</p>\n");
         sb.append(String.format("            <p class=\"text-sm text-gray-400 mt-2\">Report generated on %s</p>\n",
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+                LocalDateTime.ofInstant(Instant.ofEpochMilli(report.getTimestamp()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
         sb.append("        </header>\n");
 
         // Aggregate Summary Cards

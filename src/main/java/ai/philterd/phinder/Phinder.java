@@ -67,12 +67,6 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"--csv-quote"}, description = "The CSV quote character (default: \").", defaultValue = "\"")
     private char csvQuote;
 
-    @Option(names = {"-r", "--report"}, description = "The report file path. If not specified, a text report will be saved to 'report.txt'.")
-    private File reportFile;
-
-    @Option(names = {"-f", "--format"}, description = "The report format: text, pdf, json, html. Default is text.")
-    private String reportFormat;
-
     @Option(names = {"-w", "--weights"}, description = "The PII weights (JSON file).")
     private File weightsFile;
 
@@ -307,7 +301,7 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
     }
 
     private void generateReport(PhinderReport report) throws Exception {
-        ReportBuilder reportBuilder = new ReportBuilder(reportFile, reportFormat);
+        ReportBuilder reportBuilder = new ReportBuilder();
         reportBuilder.build(report);
     }
 

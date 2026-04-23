@@ -38,14 +38,9 @@ Phinder is designed for high performance. Large log files are processed line-by-
 
 You can use the `--log` and `--skip-unchanged` options. Phinder will maintain a log (in a local database) of the files it has already scanned and their hashes. On subsequent runs, it will skip files that haven't changed.
 
-### In what formats can I get the reports?
+### In what formats are the reports generated?
 
-Phinder always generates an HTML (`.html`) report. You can also optionally generate reports in other formats:
-- Plain Text (`.txt`)
-- PDF (`.pdf`)
-- JSON (`.json`)
-
-Use the `-f` or `--format` option to specify the desired optional format.
+Phinder always generates both HTML (`.html`) and JSON (`.json`) reports.
 
 ### How is OCR handled for images?
 

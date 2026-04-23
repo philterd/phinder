@@ -33,22 +33,11 @@ public class ReportBuilderTest {
     @TempDir
     Path tempDir;
 
-    @Test
-    public void testTextReport() throws Exception {
-        PhinderReport report = createTestReport();
-        File reportFile = tempDir.resolve("report.txt").toFile();
-        
-        ReportBuilder.generateTextReport(report, reportFile);
-        
-        String content = FileUtils.readFileToString(reportFile, StandardCharsets.UTF_8);
-        assertTrue(content.contains("Phinder PII Report"), "Report should contain title");
-        assertTrue(content.contains("email-address: 2"), "Report should contain count");
-        assertTrue(content.contains("Magnitude Score: 2.00"), "Report should contain score");
-    }
 
     @Test
     public void testJsonReport() throws Exception {
         PhinderReport report = createTestReport();
+        report.setWeight("email-address", 2.0);
         File reportFile = tempDir.resolve("report.json").toFile();
         
         ReportBuilder.generateJsonReport(report, reportFile);
@@ -56,6 +45,29 @@ public class ReportBuilderTest {
         String content = FileUtils.readFileToString(reportFile, StandardCharsets.UTF_8);
         assertTrue(content.contains("\"aggregateCounts\""));
         assertTrue(content.contains("\"email-address\": 2"));
+        // Matches yyyy-MM-dd HH:mm:ss
+        assertTrue(content.matches("(?s).*\"timestamp\": \"\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\".*"));
+        assertTrue(content.contains("\"weights\":"));
+        assertTrue(content.contains("\"email-address\": 2.0"));
+        assertTrue(content.contains("\"magnitudeScore\": 4.0"));
+        assertTrue(content.contains("\"densityScore\": 0.04"));
+    }
+
+    @Test
+    public void testAlwaysGenerateReports() throws Exception {
+        PhinderReport report = createTestReport();
+        
+        ReportBuilder builder = new ReportBuilder();
+        builder.build(report);
+        
+        File htmlReport = new File("report.html");
+        File jsonReport = new File("report.json");
+        
+        assertTrue(htmlReport.exists(), "Default HTML report should always be generated");
+        assertTrue(jsonReport.exists(), "Default JSON report should always be generated");
+        
+        htmlReport.delete();
+        jsonReport.delete();
     }
 
     @Test
@@ -75,16 +87,6 @@ public class ReportBuilderTest {
         assertTrue(content.contains("PII Variety"), "Should contain variety column");
     }
 
-    @Test
-    public void testPdfReport() throws Exception {
-        PhinderReport report = createTestReport();
-        File reportFile = tempDir.resolve("report.pdf").toFile();
-        
-        ReportBuilder.generatePdfReport(report, reportFile);
-        
-        assertTrue(reportFile.exists());
-        assertTrue(reportFile.length() > 0);
-    }
 
     private PhinderReport createTestReport() {
         PhinderReport report = new PhinderReport();
