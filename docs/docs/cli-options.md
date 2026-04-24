@@ -10,9 +10,9 @@ Phinder is a command-line application. Below is a list of all available options.
 | `-r` | `--report` | Path to save an optional report. (Default: `report.txt` if specified)                   |
 | `-f` | `--format` | Format of the optional report: `text`, `pdf`, `json`, `html`.                           |
 | `-w` | `--weights` | Path to custom PII weights (JSON file).                                                |
-| `-l` | `--log`     | Path to save the scan log (H2 database). (Default: `scan`)                             |
+| `-l` | `--log`     | Enable the scan log using a MongoDB database.                                         |
 | `-s` | `--skip-unchanged` | Skip scanning files that haven't changed since the last scan log.                      |
-| | `--clean` | Truncate the scan log database. |
+| | `--clean` | Delete the entries in the scan log. |
 | | `--csv-delimiter` | Custom CSV delimiter character. (Default: `,`)                                         |
 | | `--csv-quote` | Custom CSV quote character. (Default: `"`)                                             |
 | `-h` | `--help` | Show the help message and exit.                                                        |

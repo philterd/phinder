@@ -21,12 +21,21 @@ java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt
 ```
 
 To process a directory recursively:
-
-```bash
-java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R
-```
-
-For more examples and detailed usage, please refer to the [documentation](http://philterd.github.io/phinder).
+ 
+ ```bash
+ java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R
+ ```
+ 
+ ### Use MongoDB to skip unchanged files
+ 
+ Using a MongoDB database allows Phinder to track scanned files and skip those that haven't changed in subsequent runs.
+ 
+ ```bash
+ export PHINDER_MONGODB_URL="mongodb://localhost:27017"
+ java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ --log --skip-unchanged
+ ```
+ 
+ For more examples and detailed usage, please refer to the [documentation](http://philterd.github.io/phinder).
 
 ## License
 

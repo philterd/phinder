@@ -36,10 +36,10 @@ public class PhinderIntegrationTest {
     @Test
     public void testFindPii() throws Exception {
         Phinder phinder = new Phinder();
-        String text = "Contact me at test@example.com";
+        String text = "Contact me at test@example.com and SSN 000-00-0000. My age is 35. IP 127.0.0.1";
         List<Span> spans = phinder.findPii(text);
 
-        assertFalse(spans.isEmpty(), "Should have found at least one PII span");
+        assertFalse(spans.isEmpty(), "Should have found PII spans");
         assertTrue(spans.stream().anyMatch(s -> s.getText().equals("test@example.com")));
     }
 

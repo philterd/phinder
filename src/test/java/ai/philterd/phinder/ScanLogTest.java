@@ -1,55 +1,65 @@
-/*
- * Copyright 2026 Philterd, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package ai.philterd.phinder;
 
+import de.bwaldvogel.mongo.MongoServer;
+import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
-import java.nio.file.Path;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ScanLogTest {
 
-    @TempDir
-    Path tempDir;
+    private MongoServer server;
+    private ScanLog scanLog;
+    private String connectionString;
+
+    @BeforeEach
+    public void setUp() {
+        server = new MongoServer(new MemoryBackend());
+        InetSocketAddress serverAddress = server.bind();
+        connectionString = "mongodb://" + serverAddress.getHostName() + ":" + serverAddress.getPort();
+        scanLog = new ScanLog(connectionString);
+    }
+
+    @AfterEach
+    public void tearDown() {
+        scanLog.close();
+        server.shutdown();
+    }
 
     @Test
     public void testScanLogLifecycle() throws Exception {
-        File dbFile = tempDir.resolve("scan").toFile();
-        ScanLog scanLog = new ScanLog(dbFile);
-        
-        try {
-            String filePath = "/path/to/file.txt";
-            String hash = "hash123";
-            
-            assertNull(scanLog.getFileHash(filePath));
-            
-            scanLog.putFileHash(filePath, hash);
-            assertEquals(hash, scanLog.getFileHash(filePath));
-            
-            scanLog.addScannedPath("/some/dir");
-            assertTrue(scanLog.getScannedPaths().contains("/some/dir"));
-            
-            scanLog.clean();
-            assertNull(scanLog.getFileHash(filePath));
-            assertTrue(scanLog.getScannedPaths().isEmpty());
-        } finally {
-            scanLog.close();
-        }
+        String filePath = "/path/to/file.txt";
+        String hash = "hash123";
+
+        assertNull(scanLog.getFileHash(filePath));
+
+        scanLog.putFileHash(filePath, hash);
+        assertEquals(hash, scanLog.getFileHash(filePath));
+
+        scanLog.addScannedPath("/some/dir");
+        assertTrue(scanLog.getScannedPaths().contains("/some/dir"));
+
+        scanLog.clean();
+        assertNull(scanLog.getFileHash(filePath));
+        assertTrue(scanLog.getScannedPaths().isEmpty());
+    }
+
+    @Test
+    public void testSaveReport() {
+        PhinderReport report = new PhinderReport();
+        report.setSkippedFiles(5);
+        report.addFileResult("file1.txt", Collections.emptyList(), 100);
+
+        // This should not throw an exception
+        scanLog.saveReport(report);
+
+        // Verify that the report was saved
+        assertEquals(1, scanLog.getReportCount());
     }
 }

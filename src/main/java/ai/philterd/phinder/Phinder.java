@@ -20,13 +20,15 @@ import ai.philterd.phileas.model.filtering.Span;
 import ai.philterd.phileas.model.filtering.TextFilterResult;
 import ai.philterd.phileas.policy.Identifiers;
 import ai.philterd.phileas.policy.Policy;
-import ai.philterd.phileas.policy.filters.EmailAddress;
-import ai.philterd.phileas.policy.filters.Ssn;
+import ai.philterd.phileas.policy.filters.*;
+import ai.philterd.phileas.policy.filters.Currency;
+import ai.philterd.phileas.policy.filters.Date;
 import ai.philterd.phileas.services.context.DefaultContextService;
 import ai.philterd.phileas.services.disambiguation.vector.InMemoryVectorService;
 import ai.philterd.phileas.services.filters.filtering.PlainTextFilterService;
-import ai.philterd.phileas.services.strategies.rules.EmailAddressFilterStrategy;
-import ai.philterd.phileas.services.strategies.rules.SsnFilterStrategy;
+import ai.philterd.phileas.services.strategies.ai.*;
+import ai.philterd.phileas.services.strategies.dynamic.*;
+import ai.philterd.phileas.services.strategies.rules.*;
 import ai.philterd.phinder.processors.*;
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
@@ -43,7 +45,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
@@ -76,8 +77,8 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"-w", "--weights"}, description = "The PII weights (JSON file).")
     private File weightsFile;
 
-    @Option(names = {"-l", "--log"}, description = "Keep a log of the scan using an H2 database (default: scan.db).", arity = "0..1", fallbackValue = "scan")
-    private File logFile;
+    @Option(names = {"-l", "--log"}, description = "Enable the scan log using a MongoDB database.")
+    private boolean log;
 
     @Option(names = {"-s", "--skip-unchanged"}, description = "Skip scanning files that haven't changed since the last scan log.")
     private boolean skipUnchanged;
@@ -135,11 +136,8 @@ public class Phinder implements Callable<Integer> {
         PhinderReport report = new PhinderReport();
 
         ScanLog scanLog = null;
-        if (logFile != null || skipUnchanged || clean) {
-            if (logFile == null) {
-                logFile = new File("scan");
-            }
-            scanLog = new ScanLog(logFile);
+        if (log || skipUnchanged || clean) {
+            scanLog = new ScanLog();
         }
 
         try {
@@ -213,16 +211,20 @@ public class Phinder implements Callable<Integer> {
             report.setSkippedFiles(skippedCount);
             generateReport(report);
 
+            if (scanLog != null) {
+                scanLog.saveReport(report);
+            }
+
             return exitCode;
         } finally {
             if (scanLog != null) {
                 scanLog.close();
-                System.out.println("Scan log saved to " + logFile.getAbsolutePath() + ".mv.db");
+                System.out.println("Scan log updated.");
             }
         }
     }
 
-private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> processors, Policy policy, PhinderReport report, ScanLog scanLog) throws SQLException {
+    private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> processors, Policy policy, PhinderReport report, ScanLog scanLog) {
     String hash = getFileHash(inputFile);
 
     if (skipUnchanged && scanLog != null) {
@@ -311,12 +313,64 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
         reportBuilder.build(report);
     }
 
-    public Policy createDefaultPolicy() {
+    public Policy createDefaultPolicy() throws IOException {
 
-        // TODO: Build out the full policy.
+        final Policy policy = new Policy();
+        final Identifiers identifiers = new Identifiers();
 
-        Policy policy = new Policy();
-        Identifiers identifiers = new Identifiers();
+        Age age = new Age();
+        AgeFilterStrategy ageFilterStrategy = new AgeFilterStrategy();
+        ageFilterStrategy.setStrategy("REDACT");
+        age.setAgeFilterStrategies(Collections.singletonList(ageFilterStrategy));
+        identifiers.setAge(age);
+
+        BankRoutingNumber bankRoutingNumber = new BankRoutingNumber();
+        BankRoutingNumberFilterStrategy bankRoutingNumberFilterStrategy = new BankRoutingNumberFilterStrategy();
+        bankRoutingNumberFilterStrategy.setStrategy("REDACT");
+        bankRoutingNumber.setBankRoutingNumberFilterStrategies(Collections.singletonList(bankRoutingNumberFilterStrategy));
+        identifiers.setBankRoutingNumber(bankRoutingNumber);
+
+        BitcoinAddress bitcoinAddress = new BitcoinAddress();
+        BitcoinAddressFilterStrategy bitcoinAddressFilterStrategy = new BitcoinAddressFilterStrategy();
+        bitcoinAddressFilterStrategy.setStrategy("REDACT");
+        bitcoinAddress.setBitcoinFilterStrategies(Collections.singletonList(bitcoinAddressFilterStrategy));
+        identifiers.setBitcoinAddress(bitcoinAddress);
+
+        City city = new City();
+        CityFilterStrategy cityFilterStrategy = new CityFilterStrategy();
+        cityFilterStrategy.setStrategy("REDACT");
+        city.setCityFilterStrategies(Collections.singletonList(cityFilterStrategy));
+        identifiers.setCity(city);
+
+        County county = new County();
+        CountyFilterStrategy countyFilterStrategy = new CountyFilterStrategy();
+        countyFilterStrategy.setStrategy("REDACT");
+        county.setCountyFilterStrategies(Collections.singletonList(countyFilterStrategy));
+        identifiers.setCounty(county);
+
+        CreditCard creditCard = new CreditCard();
+        CreditCardFilterStrategy creditCardFilterStrategy = new CreditCardFilterStrategy();
+        creditCardFilterStrategy.setStrategy("REDACT");
+        creditCard.setCreditCardFilterStrategies(Collections.singletonList(creditCardFilterStrategy));
+        identifiers.setCreditCard(creditCard);
+
+        Currency currency = new Currency();
+        CurrencyFilterStrategy currencyFilterStrategy = new CurrencyFilterStrategy();
+        currencyFilterStrategy.setStrategy("REDACT");
+        currency.setCurrencyFilterStrategies(Collections.singletonList(currencyFilterStrategy));
+        identifiers.setCurrency(currency);
+
+        Date date = new Date();
+        DateFilterStrategy dateFilterStrategy = new DateFilterStrategy();
+        dateFilterStrategy.setStrategy("REDACT");
+        date.setDateFilterStrategies(Collections.singletonList(dateFilterStrategy));
+        identifiers.setDate(date);
+
+        DriversLicense driversLicense = new DriversLicense();
+        DriversLicenseFilterStrategy driversLicenseFilterStrategy = new DriversLicenseFilterStrategy();
+        driversLicenseFilterStrategy.setStrategy("REDACT");
+        driversLicense.setDriversLicenseFilterStrategies(Collections.singletonList(driversLicenseFilterStrategy));
+        identifiers.setDriversLicense(driversLicense);
 
         EmailAddress emailAddress = new EmailAddress();
         EmailAddressFilterStrategy emailAddressFilterStrategy = new EmailAddressFilterStrategy();
@@ -324,11 +378,119 @@ private boolean processFileWithCheck(File inputFile, List<DocumentProcessor> pro
         emailAddress.setEmailAddressFilterStrategies(Collections.singletonList(emailAddressFilterStrategy));
         identifiers.setEmailAddress(emailAddress);
 
+        FirstName firstName = new FirstName();
+        FirstNameFilterStrategy firstNameFilterStrategy = new FirstNameFilterStrategy();
+        firstNameFilterStrategy.setStrategy("REDACT");
+        firstName.setFirstNameFilterStrategies(Collections.singletonList(firstNameFilterStrategy));
+        identifiers.setFirstName(firstName);
+
+        Hospital hospital = new Hospital();
+        HospitalFilterStrategy hospitalFilterStrategy = new HospitalFilterStrategy();
+        hospitalFilterStrategy.setStrategy("REDACT");
+        hospital.setHospitalFilterStrategies(Collections.singletonList(hospitalFilterStrategy));
+        identifiers.setHospital(hospital);
+
+        IbanCode ibanCode = new IbanCode();
+        IbanCodeFilterStrategy ibanCodeFilterStrategy = new IbanCodeFilterStrategy();
+        ibanCodeFilterStrategy.setStrategy("REDACT");
+        ibanCode.setIbanCodeFilterStrategies(Collections.singletonList(ibanCodeFilterStrategy));
+        identifiers.setIbanCode(ibanCode);
+
+        IpAddress ipAddress = new IpAddress();
+        IpAddressFilterStrategy ipAddressFilterStrategy = new IpAddressFilterStrategy();
+        ipAddressFilterStrategy.setStrategy("REDACT");
+        ipAddress.setIpAddressFilterStrategies(Collections.singletonList(ipAddressFilterStrategy));
+        identifiers.setIpAddress(ipAddress);
+
+        MacAddress macAddress = new MacAddress();
+        MacAddressFilterStrategy macAddressFilterStrategy = new MacAddressFilterStrategy();
+        macAddressFilterStrategy.setStrategy("REDACT");
+        macAddress.setMacAddressFilterStrategies(Collections.singletonList(macAddressFilterStrategy));
+        identifiers.setMacAddress(macAddress);
+
+        MedicalCondition medicalCondition = new MedicalCondition();
+        MedicalConditionFilterStrategy medicalConditionFilterStrategy = new MedicalConditionFilterStrategy();
+        medicalConditionFilterStrategy.setStrategy("REDACT");
+        medicalCondition.setMedicalConditionFilterStrategies(Collections.singletonList(medicalConditionFilterStrategy));
+        identifiers.setMedicalCondition(medicalCondition);
+
+        PassportNumber passportNumber = new PassportNumber();
+        PassportNumberFilterStrategy passportNumberFilterStrategy = new PassportNumberFilterStrategy();
+        passportNumberFilterStrategy.setStrategy("REDACT");
+        passportNumber.setPassportNumberFilterStrategies(Collections.singletonList(passportNumberFilterStrategy));
+        identifiers.setPassportNumber(passportNumber);
+
+        PhoneNumber phoneNumber = new PhoneNumber();
+        PhoneNumberFilterStrategy phoneNumberFilterStrategy = new PhoneNumberFilterStrategy();
+        phoneNumberFilterStrategy.setStrategy("REDACT");
+        phoneNumber.setPhoneNumberFilterStrategies(Collections.singletonList(phoneNumberFilterStrategy));
+        identifiers.setPhoneNumber(phoneNumber);
+
+        PhoneNumberExtension phoneNumberExtension = new PhoneNumberExtension();
+        PhoneNumberExtensionFilterStrategy phoneNumberExtensionFilterStrategy = new PhoneNumberExtensionFilterStrategy();
+        phoneNumberExtensionFilterStrategy.setStrategy("REDACT");
+        phoneNumberExtension.setPhoneNumberExtensionFilterStrategies(Collections.singletonList(phoneNumberExtensionFilterStrategy));
+        identifiers.setPhoneNumberExtension(phoneNumberExtension);
+
+        PhysicianName physicianName = new PhysicianName();
+        PhysicianNameFilterStrategy physicianNameFilterStrategy = new PhysicianNameFilterStrategy();
+        physicianNameFilterStrategy.setStrategy("REDACT");
+        physicianName.setPhysicianNameFilterStrategies(Collections.singletonList(physicianNameFilterStrategy));
+        identifiers.setPhysicianName(physicianName);
+
         Ssn ssn = new Ssn();
         SsnFilterStrategy ssnFilterStrategy = new SsnFilterStrategy();
         ssnFilterStrategy.setStrategy("REDACT");
         ssn.setSsnFilterStrategies(Collections.singletonList(ssnFilterStrategy));
         identifiers.setSsn(ssn);
+
+        State state = new State();
+        StateFilterStrategy stateFilterStrategy = new StateFilterStrategy();
+        stateFilterStrategy.setStrategy("REDACT");
+        state.setStateFilterStrategies(Collections.singletonList(stateFilterStrategy));
+        identifiers.setState(state);
+
+        StateAbbreviation stateAbbreviation = new StateAbbreviation();
+        StateAbbreviationFilterStrategy stateAbbreviationFilterStrategy = new StateAbbreviationFilterStrategy();
+        stateAbbreviationFilterStrategy.setStrategy("REDACT");
+        stateAbbreviation.setStateAbbreviationsFilterStrategies(Collections.singletonList(stateAbbreviationFilterStrategy));
+        identifiers.setStateAbbreviation(stateAbbreviation);
+
+        StreetAddress streetAddress = new StreetAddress();
+        StreetAddressFilterStrategy streetAddressFilterStrategy = new StreetAddressFilterStrategy();
+        streetAddressFilterStrategy.setStrategy("REDACT");
+        streetAddress.setStreetAddressFilterStrategies(Collections.singletonList(streetAddressFilterStrategy));
+        identifiers.setStreetAddress(streetAddress);
+
+        Surname surname = new Surname();
+        SurnameFilterStrategy surnameFilterStrategy = new SurnameFilterStrategy();
+        surnameFilterStrategy.setStrategy("REDACT");
+        surname.setSurnameFilterStrategies(Collections.singletonList(surnameFilterStrategy));
+        identifiers.setSurname(surname);
+
+        TrackingNumber trackingNumber = new TrackingNumber();
+        TrackingNumberFilterStrategy trackingNumberFilterStrategy = new TrackingNumberFilterStrategy();
+        trackingNumberFilterStrategy.setStrategy("REDACT");
+        trackingNumber.setTrackingNumberFilterStrategies(Collections.singletonList(trackingNumberFilterStrategy));
+        identifiers.setTrackingNumber(trackingNumber);
+
+        Url url = new Url();
+        UrlFilterStrategy urlFilterStrategy = new UrlFilterStrategy();
+        urlFilterStrategy.setStrategy("REDACT");
+        url.setUrlFilterStrategies(Collections.singletonList(urlFilterStrategy));
+        identifiers.setUrl(url);
+
+        Vin vin = new Vin();
+        VinFilterStrategy vinFilterStrategy = new VinFilterStrategy();
+        vinFilterStrategy.setStrategy("REDACT");
+        vin.setVinFilterStrategies(Collections.singletonList(vinFilterStrategy));
+        identifiers.setVin(vin);
+
+        ZipCode zipCode = new ZipCode();
+        ZipCodeFilterStrategy zipCodeFilterStrategy = new ZipCodeFilterStrategy();
+        zipCodeFilterStrategy.setStrategy("REDACT");
+        zipCode.setZipCodeFilterStrategies(Collections.singletonList(zipCodeFilterStrategy));
+        identifiers.setZipCode(zipCode);
 
         policy.setIdentifiers(identifiers);
 
