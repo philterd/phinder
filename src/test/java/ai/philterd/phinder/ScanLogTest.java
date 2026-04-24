@@ -1,7 +1,11 @@
 package ai.philterd.phinder;
 
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
 import de.bwaldvogel.mongo.MongoServer;
 import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
+import org.bson.Document;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,5 +65,14 @@ public class ScanLogTest {
 
         // Verify that the report was saved
         assertEquals(1, scanLog.getReportCount());
+
+        // Verify that the report ID was saved
+        try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+            MongoCollection<Document> reportsCollection = mongoClient.getDatabase("phinder").getCollection("reports");
+            Document doc = reportsCollection.find().first();
+            assertNotNull(doc);
+            assertEquals(report.getReportId(), doc.getString("report_id"));
+            assertNotNull(doc.get("timestamp"));
+        }
     }
 }

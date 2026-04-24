@@ -32,13 +32,9 @@ public class ScanLog implements AutoCloseable {
     private static final String FILE_HASHES_COLLECTION = "file_hashes";
     private static final String REPORTS_COLLECTION = "reports";
 
-    public ScanLog() {
-        this(System.getenv("PHINDER_MONGODB_URI"));
-    }
-
     public ScanLog(String mongoDbUri) {
         if (mongoDbUri == null || mongoDbUri.isEmpty()) {
-            throw new RuntimeException("PHINDER_MONGODB_URI environment variable is not set.");
+            throw new RuntimeException("MongoDB URI is not set. Use --mongodb to specify the URI.");
         }
 
         ConnectionString connectionString = new ConnectionString(mongoDbUri);
@@ -93,6 +89,7 @@ public class ScanLog implements AutoCloseable {
 
     public void saveReport(PhinderReport report) {
         Document doc = new Document();
+        doc.append("report_id", report.getReportId());
         doc.append("timestamp", new Date());
         doc.append("skipped_files", report.getSkippedFiles());
         doc.append("aggregate_magnitude_score", report.getAggregateMagnitudeScore());

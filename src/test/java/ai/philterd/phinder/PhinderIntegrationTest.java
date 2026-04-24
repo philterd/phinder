@@ -52,6 +52,22 @@ public class PhinderIntegrationTest {
     }
 
     @Test
+    public void testCreateDefaultPolicy() throws Exception {
+        final Phinder phinder = new Phinder();
+        final ai.philterd.phileas.policy.Policy policy = phinder.createDefaultPolicy();
+        assertNotNull(policy);
+        assertNotNull(policy.getIdentifiers());
+        assertNotNull(policy.getIdentifiers().getAge());
+        assertNotNull(policy.getIdentifiers().getBitcoinAddress());
+        assertNotNull(policy.getIdentifiers().getCity());
+        // assertNotNull(policy.getIdentifiers().getPerson());
+        assertNotNull(policy.getIdentifiers().getFirstName());
+        assertNotNull(policy.getIdentifiers().getIbanCode());
+        assertNotNull(policy.getIdentifiers().getMedicalCondition());
+        assertNotNull(policy.getIdentifiers().getPhysicianName());
+    }
+
+    @Test
     public void testMultipleFilesIntegration() throws Exception {
         final File file1 = tempDir.resolve("file1.txt").toFile();
         final File file2 = tempDir.resolve("file2.txt").toFile();
@@ -94,5 +110,52 @@ public class PhinderIntegrationTest {
         final int exitCode = cmd.execute("-i", inputFile.getAbsolutePath(), "-w", weightsFile.getAbsolutePath());
         
         assertEquals(0, exitCode);
+    }
+
+    @Test
+    public void testCustomPolicyFromFile() throws Exception {
+        final File policyFile = new File("src/test/resources/policy.json");
+        final File inputFile = tempDir.resolve("input.txt").toFile();
+        FileUtils.writeStringToFile(inputFile, "test@example.com", StandardCharsets.UTF_8);
+
+        final Phinder phinder = new Phinder();
+        final CommandLine cmd = new CommandLine(phinder);
+        final int exitCode = cmd.execute("-i", inputFile.getAbsolutePath(), "-p", policyFile.getAbsolutePath());
+
+        assertEquals(0, exitCode);
+    }
+
+    @Test
+    public void testLogWithoutMongoDbUriShouldFail() throws Exception {
+        final File inputFile = tempDir.resolve("input.txt").toFile();
+        FileUtils.writeStringToFile(inputFile, "test@example.com", StandardCharsets.UTF_8);
+
+        final Phinder phinder = new Phinder();
+        final CommandLine cmd = new CommandLine(phinder);
+        // Using --log without --mongodb should return exit code 1
+        final int exitCode = cmd.execute("-i", inputFile.getAbsolutePath(), "--log");
+
+        assertEquals(1, exitCode);
+    }
+
+    @Test
+    public void testRunWithoutMongoDbUriShouldSucceed() throws Exception {
+        final File inputFile = tempDir.resolve("input.txt").toFile();
+        FileUtils.writeStringToFile(inputFile, "test@example.com", StandardCharsets.UTF_8);
+
+        final Phinder phinder = new Phinder();
+        final CommandLine cmd = new CommandLine(phinder);
+        // Not using --log, --skip-unchanged, or --clean, and not providing --mongodb
+        final int exitCode = cmd.execute("-i", inputFile.getAbsolutePath());
+
+        assertEquals(0, exitCode);
+        
+        // Verify reports are generated
+        assertTrue(new File("report.html").exists());
+        assertTrue(new File("report.json").exists());
+        
+        // Clean up
+        new File("report.html").delete();
+        new File("report.json").delete();
     }
 }

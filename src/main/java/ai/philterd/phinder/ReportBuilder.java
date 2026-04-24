@@ -36,7 +36,7 @@ public class ReportBuilder {
     public ReportBuilder() {
     }
 
-    public void build(final PhinderReport report) throws Exception {
+    public void build(final PhinderReport report, final String mongoDbUri) throws Exception {
         // Always generate the HTML report.
         final File htmlReportFile = new File("report.html");
 
@@ -48,6 +48,15 @@ public class ReportBuilder {
 
         generateJsonReport(report, jsonReportFile);
         System.out.println("JSON report generated: " + jsonReportFile.getAbsolutePath());
+
+        if (mongoDbUri != null && !mongoDbUri.isEmpty()) {
+            try (ScanLog scanLog = new ScanLog(mongoDbUri)) {
+                scanLog.saveReport(report);
+                System.out.println("Report stored in MongoDB.");
+            } catch (Exception e) {
+                System.err.println("Error storing report in MongoDB: " + e.getMessage());
+            }
+        }
     }
 
     public static void generateJsonReport(final PhinderReport report, final File file) throws Exception {
@@ -92,6 +101,7 @@ public class ReportBuilder {
         sb.append("    <div class=\"max-w-6xl mx-auto px-4 py-12\">\n");
         sb.append("        <header class=\"mb-12 border-b border-gray-200 pb-8\">\n");
         sb.append("            <h1 class=\"text-4xl font-extrabold text-blue-800 mb-2\">Phinder PII Report</h1>\n");
+        sb.append(String.format("            <p class=\"text-sm text-gray-400\">Report ID: %s</p>\n", report.getReportId()));
         sb.append("            <p class=\"text-lg text-gray-600\">Personally Identifiable Information (PII) detection summary.</p>\n");
         sb.append(String.format("            <p class=\"text-sm text-gray-400 mt-2\">Report generated on %s</p>\n",
                 LocalDateTime.ofInstant(Instant.ofEpochMilli(report.getTimestamp()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));

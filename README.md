@@ -35,6 +35,14 @@ java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R
 
 At the completion of the scan, `report.json` and `report.html` files will be generated in the current directory.
 
+### Store report history in MongoDB
+
+To store the report history in MongoDB, use the `--mongodb` CLI option:
+
+```bash
+java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt --mongodb "mongodb://localhost:27017/phinder"
+```
+
 For more examples and detailed usage, please refer to the [documentation](http://philterd.github.io/phinder).
 
 ## License

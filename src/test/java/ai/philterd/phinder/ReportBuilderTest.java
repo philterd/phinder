@@ -58,7 +58,7 @@ public class ReportBuilderTest {
         final PhinderReport report = createTestReport();
         
         final ReportBuilder builder = new ReportBuilder();
-        builder.build(report);
+        builder.build(report, null);
         
         final File htmlReport = new File("report.html");
         final File jsonReport = new File("report.json");

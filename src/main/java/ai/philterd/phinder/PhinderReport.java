@@ -30,6 +30,7 @@ public class PhinderReport {
     private final Map<String, ConfidenceStats> aggregateConfidence = new HashMap<>();
     private final Map<String, Map<String, ConfidenceStats>> perFileConfidence = new HashMap<>();
     private final long timestamp;
+    private final String reportId;
     private int skippedFiles = 0;
 
     public static class ConfidenceStats {
@@ -64,6 +65,7 @@ public class PhinderReport {
 
     public PhinderReport() {
         this.timestamp = System.currentTimeMillis();
+        this.reportId = java.util.UUID.randomUUID().toString();
         // Default weight is 1.0 for all types
     }
 
@@ -151,6 +153,10 @@ public class PhinderReport {
 
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public String getReportId() {
+        return reportId;
     }
 
     public int getSkippedFiles() {

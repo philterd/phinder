@@ -94,6 +94,9 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"--clean"}, description = "Truncate the scan log database.")
     private boolean clean;
 
+    @Option(names = {"--mongodb"}, description = "The MongoDB URI.")
+    private String mongoDbUri;
+
     private PlainTextFilterService filterService;
 
     public static void main(final String[] args) {
@@ -113,12 +116,14 @@ public class Phinder implements Callable<Integer> {
                 return 1;
             }
 
-            final String policyJson = FileUtils.readFileToString(policyFile, StandardCharsets.UTF_8);
-            final Gson gson = new Gson();
-            policy = gson.fromJson(policyJson, Policy.class);
+        final String policyJson = FileUtils.readFileToString(policyFile, StandardCharsets.UTF_8);
+        final Gson gson = new Gson();
+        policy = gson.fromJson(policyJson, Policy.class);
+        System.out.println("Using policy from file: " + policyFile.getAbsolutePath());
 
         } else {
             policy = createDefaultPolicy();
+            System.out.println("No policy file specified. Using default policy.");
         }
 
         final Properties properties = new Properties();
@@ -150,7 +155,11 @@ public class Phinder implements Callable<Integer> {
         ScanLog scanLog = null;
 
         if (log || skipUnchanged || clean) {
-            scanLog = new ScanLog();
+            if (mongoDbUri == null || mongoDbUri.isEmpty()) {
+                System.err.println("MongoDB URI is required when using --log, --skip-unchanged, or --clean. Use --mongodb to specify the URI.");
+                return 1;
+            }
+            scanLog = new ScanLog(mongoDbUri);
         }
 
         try {
@@ -228,10 +237,6 @@ public class Phinder implements Callable<Integer> {
 
             report.setSkippedFiles(skippedCount);
             generateReport(report);
-
-            if (scanLog != null) {
-                scanLog.saveReport(report);
-            }
 
             return exitCode;
 
@@ -352,7 +357,7 @@ public class Phinder implements Callable<Integer> {
 
     private void generateReport(final PhinderReport report) throws Exception {
         final ReportBuilder reportBuilder = new ReportBuilder();
-        reportBuilder.build(report);
+        reportBuilder.build(report, mongoDbUri);
     }
 
     public Policy createDefaultPolicy() throws IOException {
@@ -360,11 +365,131 @@ public class Phinder implements Callable<Integer> {
         final Policy policy = new Policy();
         final Identifiers identifiers = new Identifiers();
 
+        final Age age = new Age();
+        final AgeFilterStrategy ageFilterStrategy = new AgeFilterStrategy();
+        ageFilterStrategy.setStrategy("REDACT");
+        age.setAgeFilterStrategies(Collections.singletonList(ageFilterStrategy));
+        identifiers.setAge(age);
+
+        final BankRoutingNumber bankRoutingNumber = new BankRoutingNumber();
+        final BankRoutingNumberFilterStrategy bankRoutingNumberFilterStrategy = new BankRoutingNumberFilterStrategy();
+        bankRoutingNumberFilterStrategy.setStrategy("REDACT");
+        bankRoutingNumber.setBankRoutingNumberFilterStrategies(Collections.singletonList(bankRoutingNumberFilterStrategy));
+        identifiers.setBankRoutingNumber(bankRoutingNumber);
+
+        final BitcoinAddress bitcoinAddress = new BitcoinAddress();
+        final BitcoinAddressFilterStrategy bitcoinAddressFilterStrategy = new BitcoinAddressFilterStrategy();
+        bitcoinAddressFilterStrategy.setStrategy("REDACT");
+        bitcoinAddress.setBitcoinFilterStrategies(Collections.singletonList(bitcoinAddressFilterStrategy));
+        identifiers.setBitcoinAddress(bitcoinAddress);
+
+        final City city = new City();
+        final ai.philterd.phileas.services.strategies.dynamic.CityFilterStrategy cityFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.CityFilterStrategy();
+        cityFilterStrategy.setStrategy("REDACT");
+        city.setCityFilterStrategies(Collections.singletonList(cityFilterStrategy));
+        identifiers.setCity(city);
+
+        final County county = new County();
+        final ai.philterd.phileas.services.strategies.dynamic.CountyFilterStrategy countyFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.CountyFilterStrategy();
+        countyFilterStrategy.setStrategy("REDACT");
+        county.setCountyFilterStrategies(Collections.singletonList(countyFilterStrategy));
+        identifiers.setCounty(county);
+
+        final CreditCard creditCard = new CreditCard();
+        final CreditCardFilterStrategy creditCardFilterStrategy = new CreditCardFilterStrategy();
+        creditCardFilterStrategy.setStrategy("REDACT");
+        creditCard.setCreditCardFilterStrategies(Collections.singletonList(creditCardFilterStrategy));
+        identifiers.setCreditCard(creditCard);
+
+        final Currency currency = new Currency();
+        final CurrencyFilterStrategy currencyFilterStrategy = new CurrencyFilterStrategy();
+        currencyFilterStrategy.setStrategy("REDACT");
+        currency.setCurrencyFilterStrategies(Collections.singletonList(currencyFilterStrategy));
+        identifiers.setCurrency(currency);
+
+        final Date date = new Date();
+        final DateFilterStrategy dateFilterStrategy = new DateFilterStrategy();
+        dateFilterStrategy.setStrategy("REDACT");
+        date.setDateFilterStrategies(Collections.singletonList(dateFilterStrategy));
+        identifiers.setDate(date);
+
+        final DriversLicense driversLicense = new DriversLicense();
+        final DriversLicenseFilterStrategy driversLicenseFilterStrategy = new DriversLicenseFilterStrategy();
+        driversLicenseFilterStrategy.setStrategy("REDACT");
+        driversLicense.setDriversLicenseFilterStrategies(Collections.singletonList(driversLicenseFilterStrategy));
+        identifiers.setDriversLicense(driversLicense);
+
         final EmailAddress emailAddress = new EmailAddress();
         final EmailAddressFilterStrategy emailAddressFilterStrategy = new EmailAddressFilterStrategy();
         emailAddressFilterStrategy.setStrategy("REDACT");
         emailAddress.setEmailAddressFilterStrategies(Collections.singletonList(emailAddressFilterStrategy));
         identifiers.setEmailAddress(emailAddress);
+
+        final FirstName firstName = new FirstName();
+        final ai.philterd.phileas.services.strategies.dynamic.FirstNameFilterStrategy firstNameFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.FirstNameFilterStrategy();
+        firstNameFilterStrategy.setStrategy("REDACT");
+        firstName.setFirstNameFilterStrategies(Collections.singletonList(firstNameFilterStrategy));
+        identifiers.setFirstName(firstName);
+
+        final Hospital hospital = new Hospital();
+        final ai.philterd.phileas.services.strategies.dynamic.HospitalFilterStrategy hospitalFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.HospitalFilterStrategy();
+        hospitalFilterStrategy.setStrategy("REDACT");
+        hospital.setHospitalFilterStrategies(Collections.singletonList(hospitalFilterStrategy));
+        identifiers.setHospital(hospital);
+
+        final IbanCode ibanCode = new IbanCode();
+        final IbanCodeFilterStrategy ibanCodeFilterStrategy = new IbanCodeFilterStrategy();
+        ibanCodeFilterStrategy.setStrategy("REDACT");
+        ibanCode.setIbanCodeFilterStrategies(Collections.singletonList(ibanCodeFilterStrategy));
+        identifiers.setIbanCode(ibanCode);
+
+        final IpAddress ipAddress = new IpAddress();
+        final IpAddressFilterStrategy ipAddressFilterStrategy = new IpAddressFilterStrategy();
+        ipAddressFilterStrategy.setStrategy("REDACT");
+        ipAddress.setIpAddressFilterStrategies(Collections.singletonList(ipAddressFilterStrategy));
+        identifiers.setIpAddress(ipAddress);
+
+        final MacAddress macAddress = new MacAddress();
+        final MacAddressFilterStrategy macAddressFilterStrategy = new MacAddressFilterStrategy();
+        macAddressFilterStrategy.setStrategy("REDACT");
+        macAddress.setMacAddressFilterStrategies(Collections.singletonList(macAddressFilterStrategy));
+        identifiers.setMacAddress(macAddress);
+
+        final MedicalCondition medicalCondition = new MedicalCondition();
+        final MedicalConditionFilterStrategy medicalConditionFilterStrategy = new MedicalConditionFilterStrategy();
+        medicalConditionFilterStrategy.setStrategy("REDACT");
+        medicalCondition.setMedicalConditionFilterStrategies(Collections.singletonList(medicalConditionFilterStrategy));
+        identifiers.setMedicalCondition(medicalCondition);
+
+        final PassportNumber passportNumber = new PassportNumber();
+        final PassportNumberFilterStrategy passportNumberFilterStrategy = new PassportNumberFilterStrategy();
+        passportNumberFilterStrategy.setStrategy("REDACT");
+        passportNumber.setPassportNumberFilterStrategies(Collections.singletonList(passportNumberFilterStrategy));
+        identifiers.setPassportNumber(passportNumber);
+
+        /*final PhEye person = new PhEye();
+        final PhEyeFilterStrategy phEyeFilterStrategy = new PhEyeFilterStrategy();
+        phEyeFilterStrategy.setStrategy("REDACT");
+        person.setPhEyeFilterStrategies(Collections.singletonList(phEyeFilterStrategy));
+        identifiers.setPerson(person);*/
+
+        final PhoneNumber phoneNumber = new PhoneNumber();
+        final PhoneNumberFilterStrategy phoneNumberFilterStrategy = new PhoneNumberFilterStrategy();
+        phoneNumberFilterStrategy.setStrategy("REDACT");
+        phoneNumber.setPhoneNumberFilterStrategies(Collections.singletonList(phoneNumberFilterStrategy));
+        identifiers.setPhoneNumber(phoneNumber);
+
+        final PhoneNumberExtension phoneNumberExtension = new PhoneNumberExtension();
+        final PhoneNumberExtensionFilterStrategy phoneNumberExtensionFilterStrategy = new PhoneNumberExtensionFilterStrategy();
+        phoneNumberExtensionFilterStrategy.setStrategy("REDACT");
+        phoneNumberExtension.setPhoneNumberExtensionFilterStrategies(Collections.singletonList(phoneNumberExtensionFilterStrategy));
+        identifiers.setPhoneNumberExtension(phoneNumberExtension);
+
+        final PhysicianName physicianName = new PhysicianName();
+        final PhysicianNameFilterStrategy physicianNameFilterStrategy = new PhysicianNameFilterStrategy();
+        physicianNameFilterStrategy.setStrategy("REDACT");
+        physicianName.setPhysicianNameFilterStrategies(Collections.singletonList(physicianNameFilterStrategy));
+        identifiers.setPhysicianName(physicianName);
 
         final Ssn ssn = new Ssn();
         final SsnFilterStrategy ssnFilterStrategy = new SsnFilterStrategy();
@@ -372,50 +497,50 @@ public class Phinder implements Callable<Integer> {
         ssn.setSsnFilterStrategies(Collections.singletonList(ssnFilterStrategy));
         identifiers.setSsn(ssn);
 
-        State state = new State();
-        ai.philterd.phileas.services.strategies.dynamic.StateFilterStrategy stateFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.StateFilterStrategy();
+        final State state = new State();
+        final ai.philterd.phileas.services.strategies.dynamic.StateFilterStrategy stateFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.StateFilterStrategy();
         stateFilterStrategy.setStrategy("REDACT");
         state.setStateFilterStrategies(Collections.singletonList(stateFilterStrategy));
         identifiers.setState(state);
 
-        StateAbbreviation stateAbbreviation = new StateAbbreviation();
-        StateAbbreviationFilterStrategy stateAbbreviationFilterStrategy = new StateAbbreviationFilterStrategy();
+        final StateAbbreviation stateAbbreviation = new StateAbbreviation();
+        final StateAbbreviationFilterStrategy stateAbbreviationFilterStrategy = new StateAbbreviationFilterStrategy();
         stateAbbreviationFilterStrategy.setStrategy("REDACT");
         stateAbbreviation.setStateAbbreviationsFilterStrategies(Collections.singletonList(stateAbbreviationFilterStrategy));
         identifiers.setStateAbbreviation(stateAbbreviation);
 
-        StreetAddress streetAddress = new StreetAddress();
-        StreetAddressFilterStrategy streetAddressFilterStrategy = new StreetAddressFilterStrategy();
+        final StreetAddress streetAddress = new StreetAddress();
+        final StreetAddressFilterStrategy streetAddressFilterStrategy = new StreetAddressFilterStrategy();
         streetAddressFilterStrategy.setStrategy("REDACT");
         streetAddress.setStreetAddressFilterStrategies(Collections.singletonList(streetAddressFilterStrategy));
         identifiers.setStreetAddress(streetAddress);
 
-        Surname surname = new Surname();
-        ai.philterd.phileas.services.strategies.dynamic.SurnameFilterStrategy surnameFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.SurnameFilterStrategy();
+        final Surname surname = new Surname();
+        final ai.philterd.phileas.services.strategies.dynamic.SurnameFilterStrategy surnameFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.SurnameFilterStrategy();
         surnameFilterStrategy.setStrategy("REDACT");
         surname.setSurnameFilterStrategies(Collections.singletonList(surnameFilterStrategy));
         identifiers.setSurname(surname);
 
-        TrackingNumber trackingNumber = new TrackingNumber();
-        TrackingNumberFilterStrategy trackingNumberFilterStrategy = new TrackingNumberFilterStrategy();
+        final TrackingNumber trackingNumber = new TrackingNumber();
+        final TrackingNumberFilterStrategy trackingNumberFilterStrategy = new TrackingNumberFilterStrategy();
         trackingNumberFilterStrategy.setStrategy("REDACT");
         trackingNumber.setTrackingNumberFilterStrategies(Collections.singletonList(trackingNumberFilterStrategy));
         identifiers.setTrackingNumber(trackingNumber);
 
-        Url url = new Url();
-        UrlFilterStrategy urlFilterStrategy = new UrlFilterStrategy();
+        final Url url = new Url();
+        final UrlFilterStrategy urlFilterStrategy = new UrlFilterStrategy();
         urlFilterStrategy.setStrategy("REDACT");
         url.setUrlFilterStrategies(Collections.singletonList(urlFilterStrategy));
         identifiers.setUrl(url);
 
-        Vin vin = new Vin();
-        VinFilterStrategy vinFilterStrategy = new VinFilterStrategy();
+        final Vin vin = new Vin();
+        final VinFilterStrategy vinFilterStrategy = new VinFilterStrategy();
         vinFilterStrategy.setStrategy("REDACT");
         vin.setVinFilterStrategies(Collections.singletonList(vinFilterStrategy));
         identifiers.setVin(vin);
 
-        ZipCode zipCode = new ZipCode();
-        ZipCodeFilterStrategy zipCodeFilterStrategy = new ZipCodeFilterStrategy();
+        final ZipCode zipCode = new ZipCode();
+        final ZipCodeFilterStrategy zipCodeFilterStrategy = new ZipCodeFilterStrategy();
         zipCodeFilterStrategy.setStrategy("REDACT");
         zipCode.setZipCodeFilterStrategies(Collections.singletonList(zipCodeFilterStrategy));
         identifiers.setZipCode(zipCode);

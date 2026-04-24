@@ -40,17 +40,17 @@ EOF
 
 java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt -i src/test/resources/test.eml -w weights.json
 
-echo ""
-echo "----------------------------------------------------"
-echo "Running Phinder with scan logging and skipping unchanged files"
-echo "----------------------------------------------------"
-
-echo "First run: generating scan and reports"
-java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt -i src/test/resources/test.eml --log
-
+#echo ""
+#echo "----------------------------------------------------"
+#echo "Running Phinder with scan logging and skipping unchanged files"
+#echo "----------------------------------------------------"
+#
+#echo "First run: generating scan and reports"
+#java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt -i src/test/resources/test.eml --log
+#
 #echo ""
 #echo "Second run: skipping unchanged files"
 #java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/input.txt -i src/test/resources/test.eml --skip-unchanged
 
 # Keep report.html for the user to see
-rm weights.json scan.mv.db
+rm weights.json

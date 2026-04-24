@@ -75,6 +75,15 @@ public class PhinderReportTest {
     }
 
     @Test
+    public void testReportId() {
+        final PhinderReport report = new PhinderReport();
+        assertNotNull(report.getReportId());
+        assertFalse(report.getReportId().isEmpty());
+        // Verify it's a UUID (at least roughly)
+        assertTrue(report.getReportId().matches("^[0-9a-fA-F-]{36}$"));
+    }
+
+    @Test
     public void testConfidenceStats() {
         final PhinderReport report = new PhinderReport();
         final Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.5, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
