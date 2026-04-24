@@ -8,7 +8,7 @@ Phinder is a command-line application. Below is a list of all available options.
 | `-R`   | `--recursive`      | Recursively traverse subdirectories if directories are provided.                       |
 | `-p`   | `--policy`         | Path to a custom Phileas policy (JSON file).                                           |
 | `-w`   | `--weights`        | Path to custom PII weights (JSON file).                                                |
-| `-l`   | `--log`            | Path to save the scan log (H2 database). (Default: `scan`)                             |
+| `-l`   | `--log`            | Enable the scan log using a MongoDB database.                                         |
 | `-s`   | `--skip-unchanged` | Skip scanning files that haven't changed since the last scan log.                      |
 |        | `--clean`          | Truncate the scan log database.                                                        |
 |        | `--csv-delimiter`  | Custom CSV delimiter character. (Default: `,`)                                         |

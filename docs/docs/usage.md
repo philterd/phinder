@@ -42,15 +42,15 @@ To speed up subsequent scans, Phinder can maintain a log of scanned files and th
 
 ### MongoDB Configuration
 
-To use the scan log, you must provide a MongoDB connection string via the `PHINDER_MONGODB_URL` environment variable:
+To use the scan log, you must provide a MongoDB connection string via the `PHINDER_MONGODB_URI` environment variable:
 
 ```bash
-export PHINDER_MONGODB_URL="mongodb://localhost:27017"
+export PHINDER_MONGODB_URI="mongodb://localhost:27017"
 ```
 
 ### Generating a Scan Log
 
-By default, using `--log` or `--skip-unchanged` will enable the scan log using the MongoDB database specified in `PHINDER_MONGODB_URL`.
+By default, using `--log` or `--skip-unchanged` will enable the scan log using the MongoDB database specified in `PHINDER_MONGODB_URI`.
 
 ```bash
 java -jar phinder.jar -i /path/to/data --log

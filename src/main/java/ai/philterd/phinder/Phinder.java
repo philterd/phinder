@@ -26,8 +26,9 @@ import ai.philterd.phileas.policy.filters.Date;
 import ai.philterd.phileas.services.context.DefaultContextService;
 import ai.philterd.phileas.services.disambiguation.vector.InMemoryVectorService;
 import ai.philterd.phileas.services.filters.filtering.PlainTextFilterService;
-import ai.philterd.phileas.services.strategies.rules.EmailAddressFilterStrategy;
-import ai.philterd.phileas.services.strategies.rules.SsnFilterStrategy;
+import ai.philterd.phileas.services.strategies.rules.*;
+import ai.philterd.phileas.services.strategies.dynamic.*;
+import ai.philterd.phileas.services.strategies.ai.*;
 import ai.philterd.phinder.processors.CsvProcessor;
 import ai.philterd.phinder.processors.DocumentProcessor;
 import ai.philterd.phinder.processors.EmailProcessor;
@@ -55,7 +56,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -149,11 +149,8 @@ public class Phinder implements Callable<Integer> {
 
         ScanLog scanLog = null;
 
-        if (logFile != null || skipUnchanged || clean) {
-            if (logFile == null) {
-                logFile = new File("scan");
-            }
-            scanLog = new ScanLog(logFile);
+        if (log || skipUnchanged || clean) {
+            scanLog = new ScanLog();
         }
 
         try {
@@ -247,7 +244,7 @@ public class Phinder implements Callable<Integer> {
 
     }
 
-    private boolean processFileWithCheck(final File inputFile, final List<DocumentProcessor> processors, final Policy policy, final PhinderReport report, final ScanLog scanLog) throws SQLException {
+    private boolean processFileWithCheck(final File inputFile, final List<DocumentProcessor> processors, final Policy policy, final PhinderReport report, final ScanLog scanLog) {
 
         final String hash = getFileHash(inputFile);
 
@@ -363,9 +360,6 @@ public class Phinder implements Callable<Integer> {
         final Policy policy = new Policy();
         final Identifiers identifiers = new Identifiers();
 
-        final Policy policy = new Policy();
-        final Identifiers identifiers = new Identifiers();
-
         final EmailAddress emailAddress = new EmailAddress();
         final EmailAddressFilterStrategy emailAddressFilterStrategy = new EmailAddressFilterStrategy();
         emailAddressFilterStrategy.setStrategy("REDACT");
@@ -379,7 +373,7 @@ public class Phinder implements Callable<Integer> {
         identifiers.setSsn(ssn);
 
         State state = new State();
-        StateFilterStrategy stateFilterStrategy = new StateFilterStrategy();
+        ai.philterd.phileas.services.strategies.dynamic.StateFilterStrategy stateFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.StateFilterStrategy();
         stateFilterStrategy.setStrategy("REDACT");
         state.setStateFilterStrategies(Collections.singletonList(stateFilterStrategy));
         identifiers.setState(state);
@@ -397,7 +391,7 @@ public class Phinder implements Callable<Integer> {
         identifiers.setStreetAddress(streetAddress);
 
         Surname surname = new Surname();
-        SurnameFilterStrategy surnameFilterStrategy = new SurnameFilterStrategy();
+        ai.philterd.phileas.services.strategies.dynamic.SurnameFilterStrategy surnameFilterStrategy = new ai.philterd.phileas.services.strategies.dynamic.SurnameFilterStrategy();
         surnameFilterStrategy.setStrategy("REDACT");
         surname.setSurnameFilterStrategies(Collections.singletonList(surnameFilterStrategy));
         identifiers.setSurname(surname);

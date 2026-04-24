@@ -36,7 +36,7 @@ Phinder is designed for high performance. Large log files are processed line-by-
 
 ### How can I speed up subsequent scans?
 
-You can use the `--log` and `--skip-unchanged` options. Phinder will maintain a log (in a MongoDB database) of the files it has already scanned and their hashes. On subsequent runs, it will skip files that haven't changed. You must provide the MongoDB connection string via the `PHINDER_MONGODB_URL` environment variable.
+You can use the `--log` and `--skip-unchanged` options. Phinder will maintain a log (in a MongoDB database) of the files it has already scanned and their hashes. On subsequent runs, it will skip files that haven't changed. You must provide the MongoDB connection string via the `PHINDER_MONGODB_URI` environment variable.
 
 ### In what formats are the reports generated?
 

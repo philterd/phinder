@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 /**
  * Represents a log of a scan to track processed files and their xxHash64 hashes using a MongoDB database.
@@ -28,26 +27,21 @@ public class ScanLog implements AutoCloseable {
     private final MongoCollection<Document> fileHashesCollection;
     private final MongoCollection<Document> reportsCollection;
 
-    public ScanLog(final File databaseFile) throws SQLException {
-        try {
-            Class.forName("org.h2.Driver");
-        } catch (final ClassNotFoundException e) {
-            throw new SQLException("H2 driver not found", e);
-        }
-        final String url = "jdbc:h2:" + databaseFile.getAbsolutePath();
-        this.connection = DriverManager.getConnection(url, "sa", "");
-        initializeDatabase();
+    private static final String DATABASE_NAME = "phinder";
+    private static final String SCANNED_PATHS_COLLECTION = "scanned_paths";
+    private static final String FILE_HASHES_COLLECTION = "file_hashes";
+    private static final String REPORTS_COLLECTION = "reports";
+
+    public ScanLog() {
+        this(System.getenv("PHINDER_MONGODB_URI"));
     }
 
-    private void initializeDatabase() throws SQLException {
-        try (final Statement stmt = connection.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS scanned_paths (path VARCHAR(4096) PRIMARY KEY)");
-            stmt.execute("CREATE TABLE IF NOT EXISTS file_hashes (file_path VARCHAR(4096) PRIMARY KEY, hash VARCHAR(64))");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_scanned_paths_path ON scanned_paths(path)");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_file_hashes_file_path ON file_hashes(file_path)");
+    public ScanLog(String mongoDbUri) {
+        if (mongoDbUri == null || mongoDbUri.isEmpty()) {
+            throw new RuntimeException("PHINDER_MONGODB_URI environment variable is not set.");
         }
 
-        ConnectionString connectionString = new ConnectionString(mongoDbUrl);
+        ConnectionString connectionString = new ConnectionString(mongoDbUri);
         MongoClientSettings settings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
                 .build();
@@ -59,50 +53,40 @@ public class ScanLog implements AutoCloseable {
         this.reportsCollection = database.getCollection(REPORTS_COLLECTION);
     }
 
-    public List<String> getScannedPaths() throws SQLException {
-        final List<String> paths = new ArrayList<>();
-        try (final Statement stmt = connection.createStatement();
-             final ResultSet rs = stmt.executeQuery("SELECT path FROM scanned_paths")) {
-            while (rs.next()) {
-                paths.add(rs.getString("path"));
-            }
+    public List<String> getScannedPaths() {
+        List<String> paths = new ArrayList<>();
+        for (Document doc : scannedPathsCollection.find()) {
+            paths.add(doc.getString("path"));
         }
         return paths;
     }
 
-    public void addScannedPath(final String path) throws SQLException {
-        final String sql = "MERGE INTO scanned_paths (path) KEY (path) VALUES (?)";
-        try (final PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, path);
-            pstmt.executeUpdate();
-        }
+    public void addScannedPath(String path) {
+        scannedPathsCollection.updateOne(
+                Filters.eq("path", path),
+                Updates.set("path", path),
+                new UpdateOptions().upsert(true)
+        );
     }
 
-    public void putFileHash(final String filePath, final String hash) throws SQLException {
-        final String sql = "MERGE INTO file_hashes (file_path, hash) KEY (file_path) VALUES (?, ?)";
-        try (final PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, filePath);
-            pstmt.setString(2, hash);
-            pstmt.executeUpdate();
-        }
+    public void putFileHash(String filePath, String hash) {
+        fileHashesCollection.updateOne(
+                Filters.eq("file_path", filePath),
+                Updates.set("hash", hash),
+                new UpdateOptions().upsert(true)
+        );
     }
 
-    public void clean() throws SQLException {
-        try (final Statement stmt = connection.createStatement()) {
-            stmt.execute("TRUNCATE TABLE scanned_paths");
-            stmt.execute("TRUNCATE TABLE file_hashes");
-        }
+    public void clean() {
+        scannedPathsCollection.deleteMany(new Document());
+        fileHashesCollection.deleteMany(new Document());
+        reportsCollection.deleteMany(new Document());
     }
 
-    public String getFileHash(final String filePath) throws SQLException {
-        final String sql = "SELECT hash FROM file_hashes WHERE file_path = ?";
-        try (final PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, filePath);
-            try (final ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString("hash");
-                }
-            }
+    public String getFileHash(String filePath) {
+        Document doc = fileHashesCollection.find(Filters.eq("file_path", filePath)).first();
+        if (doc != null) {
+            return doc.getString("hash");
         }
         return null;
     }
