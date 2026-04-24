@@ -29,7 +29,7 @@ public class OcrUtil {
     public static synchronized Tesseract getTesseract() {
         if (tesseract == null) {
             tesseract = new Tesseract();
-            String datapath = System.getenv("TESSDATA_PREFIX");
+            final String datapath = System.getenv("TESSDATA_PREFIX");
             if (datapath != null) {
                 tesseract.setDatapath(datapath);
             }
@@ -37,18 +37,18 @@ public class OcrUtil {
         return tesseract;
     }
 
-    public static String extractText(File file) throws IOException {
+    public static String extractText(final File file) throws IOException {
         try {
             return getTesseract().doOCR(file);
-        } catch (TesseractException e) {
+        } catch (final TesseractException e) {
             throw new IOException("Failed to extract text via OCR from file: " + file.getName(), e);
         }
     }
 
-    public static String extractText(BufferedImage image) throws IOException {
+    public static String extractText(final BufferedImage image) throws IOException {
         try {
             return getTesseract().doOCR(image);
-        } catch (TesseractException e) {
+        } catch (final TesseractException e) {
             throw new IOException("Failed to extract text via OCR from image.", e);
         }
     }

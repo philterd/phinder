@@ -36,43 +36,43 @@ public class ExcelProcessorTest {
 
     @Test
     public void testSupports() {
-        ExcelProcessor processor = new ExcelProcessor();
-        assertTrue(processor.supports(new File("test.xlsx")));
-        assertTrue(processor.supports(new File("test.xls")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final ExcelProcessor processor = new ExcelProcessor();
+        assertTrue(processor.supports("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        assertTrue(processor.supports("application/vnd.ms-excel"));
+        assertFalse(processor.supports("text/plain"));
     }
 
     @Test
     public void testExtractTextXlsx() throws Exception {
-        File xlsxFile = tempDir.resolve("test.xlsx").toFile();
+        final File xlsxFile = tempDir.resolve("test.xlsx").toFile();
 
-        try (Workbook workbook = new XSSFWorkbook();
-             FileOutputStream out = new FileOutputStream(xlsxFile)) {
-            Sheet sheet = workbook.createSheet("Sheet1");
-            Row row = sheet.createRow(0);
-            Cell cell = row.createCell(0);
+        try (final Workbook workbook = new XSSFWorkbook();
+             final FileOutputStream out = new FileOutputStream(xlsxFile)) {
+            final Sheet sheet = workbook.createSheet("Sheet1");
+            final Row row = sheet.createRow(0);
+            final Cell cell = row.createCell(0);
             cell.setCellValue("Email: excel@example.com");
             workbook.write(out);
         }
 
-        ExcelProcessor processor = new ExcelProcessor();
-        String extracted = processor.extractText(xlsxFile);
+        final ExcelProcessor processor = new ExcelProcessor();
+        final String extracted = processor.extractText(xlsxFile);
         assertTrue(extracted.contains("excel@example.com"));
     }
 
     @Test
     public void testWordCount() throws Exception {
-        File xlsxFile = tempDir.resolve("test.xlsx").toFile();
-        try (Workbook workbook = new XSSFWorkbook();
-             FileOutputStream out = new FileOutputStream(xlsxFile)) {
-            Sheet sheet = workbook.createSheet("Sheet1");
-            Row row = sheet.createRow(0);
+        final File xlsxFile = tempDir.resolve("test.xlsx").toFile();
+        try (final Workbook workbook = new XSSFWorkbook();
+             final FileOutputStream out = new FileOutputStream(xlsxFile)) {
+            final Sheet sheet = workbook.createSheet("Sheet1");
+            final Row row = sheet.createRow(0);
             row.createCell(0).setCellValue("OneWord");
             workbook.write(out);
         }
 
-        ExcelProcessor processor = new ExcelProcessor();
-        long count = processor.getWordCount(xlsxFile);
+        final ExcelProcessor processor = new ExcelProcessor();
+        final long count = processor.getWordCount(xlsxFile);
         assertTrue(count >= 1);
     }
 }

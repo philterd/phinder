@@ -32,34 +32,35 @@ public class RtfProcessorTest {
 
     @Test
     public void testSupports() {
-        RtfProcessor processor = new RtfProcessor();
-        assertTrue(processor.supports(new File("test.rtf")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final RtfProcessor processor = new RtfProcessor();
+        assertTrue(processor.supports("application/rtf"));
+        assertTrue(processor.supports("text/rtf"));
+        assertFalse(processor.supports("text/plain"));
     }
 
     @Test
     public void testExtractText() throws Exception {
-        File rtfFile = tempDir.resolve("test.rtf").toFile();
-        String content = "{\\rtf1\\ansi Email: rtf@example.com}";
+        final File rtfFile = tempDir.resolve("test.rtf").toFile();
+        final String content = "{\\rtf1\\ansi Email: rtf@example.com}";
 
-        try (FileOutputStream out = new FileOutputStream(rtfFile)) {
+        try (final FileOutputStream out = new FileOutputStream(rtfFile)) {
             out.write(content.getBytes());
         }
 
-        RtfProcessor processor = new RtfProcessor();
-        String extracted = processor.extractText(rtfFile);
+        final RtfProcessor processor = new RtfProcessor();
+        final String extracted = processor.extractText(rtfFile);
         assertTrue(extracted.contains("rtf@example.com"));
     }
 
     @Test
     public void testWordCount() throws Exception {
-        File rtfFile = tempDir.resolve("test.rtf").toFile();
-        String content = "{\\rtf1\\ansi One two three four five six.}";
-        try (FileOutputStream out = new FileOutputStream(rtfFile)) {
+        final File rtfFile = tempDir.resolve("test.rtf").toFile();
+        final String content = "{\\rtf1\\ansi One two three four five six.}";
+        try (final FileOutputStream out = new FileOutputStream(rtfFile)) {
             out.write(content.getBytes());
         }
 
-        RtfProcessor processor = new RtfProcessor();
+        final RtfProcessor processor = new RtfProcessor();
         assertEquals(6, processor.getWordCount(rtfFile));
     }
 }

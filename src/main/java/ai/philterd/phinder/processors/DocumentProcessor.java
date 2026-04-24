@@ -25,36 +25,40 @@ import java.util.List;
 
 public interface DocumentProcessor {
 
-    String extractText(File file) throws IOException;
+    String extractText(final File file) throws IOException;
 
-    default List<Span> process(File file, Policy policy, Phinder phinder) throws Exception {
-        String text = extractText(file);
+    default List<Span> process(final File file, final Policy policy, final Phinder phinder) throws Exception {
+        final String text = extractText(file);
 
         if (text == null || text.trim().isEmpty()) {
             return List.of();
         }
 
         // Include the file name in the text to be searched for PII.
-        String combinedText = file.getName() + "\n" + text;
+        final String combinedText = file.getName() + "\n" + text;
 
         return phinder.findPii(combinedText, policy);
     }
 
-    default long getWordCount(File file) throws IOException {
-        String text = extractText(file);
+    default long getWordCount(final File file) throws IOException {
+        final String text = extractText(file);
         if (text == null || text.trim().isEmpty()) {
             return 0;
         }
         return countWords(text);
     }
 
-    default long countWords(String text) {
+    default long countWords(final String text) {
         if (text == null || text.trim().isEmpty()) {
             return 0;
         }
         return text.trim().split("\\s+").length;
     }
 
-    boolean supports(File file);
+    default boolean supports(final String mimeType, final String fileName) {
+        return supports(mimeType);
+    }
+
+    boolean supports(final String mimeType);
 
 }

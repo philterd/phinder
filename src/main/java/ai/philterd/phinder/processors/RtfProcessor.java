@@ -23,24 +23,31 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.List;
 
 public class RtfProcessor implements DocumentProcessor {
 
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList(
+            "application/rtf",
+            "text/rtf"
+    );
+
     @Override
-    public String extractText(File file) throws IOException {
-        RTFEditorKit rtfKit = new RTFEditorKit();
-        Document doc = new DefaultStyledDocument();
-        try (InputStream is = new FileInputStream(file)) {
+    public String extractText(final File file) throws IOException {
+        final RTFEditorKit rtfKit = new RTFEditorKit();
+        final Document doc = new DefaultStyledDocument();
+        try (final InputStream is = new FileInputStream(file)) {
             rtfKit.read(is, doc, 0);
             return doc.getText(0, doc.getLength());
-        } catch (BadLocationException e) {
+        } catch (final BadLocationException e) {
             throw new IOException("Failed to extract text from RTF file: " + file.getName(), e);
         }
     }
 
     @Override
-    public boolean supports(File file) {
-        return file.getName().toLowerCase().endsWith(".rtf");
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

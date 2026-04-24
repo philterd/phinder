@@ -18,15 +18,12 @@ package ai.philterd.phinder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.io.FileUtils;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,96 +33,38 @@ import java.util.Map;
 
 public class ReportBuilder {
 
-    private final File reportFile;
-    private final String reportFormat;
-
-    public ReportBuilder(File reportFile, String reportFormat) {
-        this.reportFile = reportFile;
-        this.reportFormat = reportFormat;
+    public ReportBuilder() {
     }
 
-    public void build(PhinderReport report) throws Exception {
+    public void build(final PhinderReport report) throws Exception {
         // Always generate the HTML report.
-        File htmlReportFile = new File("report.html");
+        final File htmlReportFile = new File("report.html");
 
-        // If the user specified a report file and it is HTML, use that.
-        // Or if they specified the format as html, use the reportFile.
-        if (reportFile != null && (reportFile.getName().endsWith(".html") || "html".equalsIgnoreCase(reportFormat))) {
-            htmlReportFile = reportFile;
-        }
+        // Always generate the JSON report.
+        final File jsonReportFile = new File("report.json");
 
         generateHtmlReport(report, htmlReportFile);
         System.out.println("HTML report generated: " + htmlReportFile.getAbsolutePath());
 
-        // Generate the other report if it's specified.
-        if (reportFile != null || reportFormat != null) {
-            // Determine the format if not explicitly provided
-            String format = reportFormat;
-            if (format == null) {
-                if (reportFile.getName().endsWith(".pdf")) format = "pdf";
-                else if (reportFile.getName().endsWith(".json")) format = "json";
-                else if (reportFile.getName().endsWith(".html")) format = "html";
-                else format = "text";
-            }
-
-            File otherReportFile = reportFile != null ? reportFile : new File("report.txt");
-
-            if ("pdf".equalsIgnoreCase(format)) {
-                generatePdfReport(report, otherReportFile);
-                System.out.println("PDF report generated: " + otherReportFile.getAbsolutePath());
-            } else if ("json".equalsIgnoreCase(format)) {
-                generateJsonReport(report, otherReportFile);
-                System.out.println("JSON report generated: " + otherReportFile.getAbsolutePath());
-            } else if ("text".equalsIgnoreCase(format)) {
-                generateTextReport(report, otherReportFile);
-                System.out.println("Text report generated: " + otherReportFile.getAbsolutePath());
-            } else if ("html".equalsIgnoreCase(format)) {
-                // Already generated above, but if it was the only one requested via -r or -f, we don't need to do more.
-            }
-        }
+        generateJsonReport(report, jsonReportFile);
+        System.out.println("JSON report generated: " + jsonReportFile.getAbsolutePath());
     }
 
-    public static void generateTextReport(PhinderReport report, File file) throws Exception {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Phinder PII Report\n");
-        sb.append("==================\n\n");
+    public static void generateJsonReport(final PhinderReport report, final File file) throws Exception {
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        final String readableTimestamp = LocalDateTime.ofInstant(Instant.ofEpochMilli(report.getTimestamp()), ZoneId.systemDefault()).format(formatter);
 
-        sb.append(String.format("Aggregate Magnitude Score: %.2f\n", report.getAggregateMagnitudeScore()));
-        sb.append(String.format("Aggregate Density Score: %.4f\n", report.getAggregateDensityScore()));
-        sb.append(String.format("Files Skipped: %d\n\n", report.getSkippedFiles()));
-
-        sb.append("Aggregate Counts:\n");
-        Map<String, Integer> aggregate = report.getAggregateCounts();
-        if (aggregate.isEmpty()) {
-            sb.append(" - No PII detected.\n");
-        } else {
-            aggregate.forEach((type, count) -> sb.append(String.format(" - %s: %d\n", type, count)));
-        }
-
-        sb.append("\nPer-File Details:\n");
-        report.getPerFileCounts().forEach((fileName, counts) -> {
-            sb.append(String.format(" - %s (Magnitude Score: %.2f, Density Score: %.4f):\n",
-                    fileName, report.getFileMagnitudeScore(fileName), report.getFileDensityScore(fileName)));
-            if (counts.isEmpty()) {
-                sb.append("   - No PII detected.\n");
-            } else {
-                counts.forEach((type, count) -> sb.append(String.format("   - %s: %d\n", type, count)));
-            }
-        });
-
-        FileUtils.writeStringToFile(file, sb.toString(), StandardCharsets.UTF_8);
-    }
-
-    public static void generateJsonReport(PhinderReport report, File file) throws Exception {
-        Map<String, Object> data = new HashMap<>();
+        final Map<String, Object> data = new HashMap<>();
+        data.put("timestamp", readableTimestamp);
+        data.put("weights", report.getWeights());
         data.put("aggregateMagnitudeScore", report.getAggregateMagnitudeScore());
         data.put("aggregateDensityScore", report.getAggregateDensityScore());
         data.put("skippedFiles", report.getSkippedFiles());
         data.put("aggregateCounts", report.getAggregateCounts());
 
-        Map<String, Object> perFileDetails = new HashMap<>();
+        final Map<String, Object> perFileDetails = new HashMap<>();
         report.getPerFileCounts().forEach((fileName, counts) -> {
-            Map<String, Object> fileDetail = new HashMap<>();
+            final Map<String, Object> fileDetail = new HashMap<>();
             fileDetail.put("magnitudeScore", report.getFileMagnitudeScore(fileName));
             fileDetail.put("densityScore", report.getFileDensityScore(fileName));
             fileDetail.put("counts", counts);
@@ -133,128 +72,14 @@ public class ReportBuilder {
         });
         data.put("perFileDetails", perFileDetails);
 
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String json = gson.toJson(data);
+        final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        final String json = gson.toJson(data);
 
         FileUtils.writeStringToFile(file, json, StandardCharsets.UTF_8);
     }
 
-    public static void generatePdfReport(PhinderReport report, File file) throws Exception {
-        try (PDDocument document = new PDDocument()) {
-            PDPage page = new PDPage();
-            document.addPage(page);
-
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 16);
-                contentStream.newLineAtOffset(50, 750);
-                contentStream.showText("Phinder PII Report");
-                contentStream.endText();
-
-                int y = 720;
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText(String.format("Aggregate Magnitude Score: %.2f", report.getAggregateMagnitudeScore()));
-                contentStream.endText();
-                y -= 20;
-
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText(String.format("Aggregate Density Score: %.4f", report.getAggregateDensityScore()));
-                contentStream.endText();
-                y -= 20;
-
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText(String.format("Files Skipped: %d", report.getSkippedFiles()));
-                contentStream.endText();
-                y -= 30;
-
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText("Aggregate Counts:");
-                contentStream.endText();
-                y -= 20;
-
-                Map<String, Integer> aggregate = report.getAggregateCounts();
-                if (aggregate.isEmpty()) {
-                    contentStream.beginText();
-                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                    contentStream.newLineAtOffset(60, y);
-                    contentStream.showText("- No PII detected.");
-                    contentStream.endText();
-                    y -= 20;
-                } else {
-                    for (Map.Entry<String, Integer> entry : aggregate.entrySet()) {
-                        contentStream.beginText();
-                        contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                        contentStream.newLineAtOffset(60, y);
-                        contentStream.showText(String.format("- %s: %d", entry.getKey(), entry.getValue()));
-                        contentStream.endText();
-                        y -= 20;
-                    }
-                }
-
-                y -= 10;
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 12);
-                contentStream.newLineAtOffset(50, y);
-                contentStream.showText("Per-File Details:");
-                contentStream.endText();
-                y -= 20;
-
-                for (Map.Entry<String, Map<String, Integer>> fileEntry : report.getPerFileCounts().entrySet()) {
-                    String fileName = fileEntry.getKey();
-                    contentStream.beginText();
-                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                    contentStream.newLineAtOffset(60, y);
-                    contentStream.showText(String.format("- %s", fileName));
-                    contentStream.endText();
-                    y -= 15;
-
-                    contentStream.beginText();
-                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
-                    contentStream.newLineAtOffset(70, y);
-                    contentStream.showText(String.format("Magnitude Score: %.2f, Density Score: %.4f",
-                            report.getFileMagnitudeScore(fileName), report.getFileDensityScore(fileName)));
-                    contentStream.endText();
-                    y -= 15;
-
-                    Map<String, Integer> counts = fileEntry.getValue();
-                    if (counts.isEmpty()) {
-                        contentStream.beginText();
-                        contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
-                        contentStream.newLineAtOffset(80, y);
-                        contentStream.showText("No PII detected.");
-                        contentStream.endText();
-                        y -= 15;
-                    } else {
-                        for (Map.Entry<String, Integer> countEntry : counts.entrySet()) {
-                            contentStream.beginText();
-                            contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
-                            contentStream.newLineAtOffset(80, y);
-                            contentStream.showText(String.format("%s: %d", countEntry.getKey(), countEntry.getValue()));
-                            contentStream.endText();
-                            y -= 15;
-                        }
-                    }
-
-                    if (y < 50) {
-                        break;
-                    }
-                }
-            }
-
-            document.save(file);
-        }
-    }
-
-    public static void generateHtmlReport(PhinderReport report, File file) throws Exception {
-        StringBuilder sb = new StringBuilder();
+    public static void generateHtmlReport(final PhinderReport report, final File file) throws Exception {
+        final StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html>\n");
         sb.append("<html lang=\"en\">\n");
         sb.append("<head>\n");
@@ -269,7 +94,7 @@ public class ReportBuilder {
         sb.append("            <h1 class=\"text-4xl font-extrabold text-blue-800 mb-2\">Phinder PII Report</h1>\n");
         sb.append("            <p class=\"text-lg text-gray-600\">Personally Identifiable Information (PII) detection summary.</p>\n");
         sb.append(String.format("            <p class=\"text-sm text-gray-400 mt-2\">Report generated on %s</p>\n",
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+                LocalDateTime.ofInstant(Instant.ofEpochMilli(report.getTimestamp()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
         sb.append("        </header>\n");
 
         // Aggregate Summary Cards
@@ -289,7 +114,7 @@ public class ReportBuilder {
         sb.append("        </section>\n");
 
         // Best Candidates for Redaction Testing
-        List<String> files = new ArrayList<>(report.getPerFileCounts().keySet());
+        final List<String> files = new ArrayList<>(report.getPerFileCounts().keySet());
         if (!files.isEmpty()) {
             // Sort by Magnitude Score (desc) then by Variety (desc) then by Density Score (desc)
             files.sort((f1, f2) -> {
@@ -303,7 +128,7 @@ public class ReportBuilder {
                 return compare;
             });
 
-            List<String> bestCandidates = files.subList(0, Math.min(20, files.size()));
+            final List<String> bestCandidates = files.subList(0, Math.min(20, files.size()));
 
             sb.append("        <section class=\"mb-12\">\n");
             sb.append("            <h2 class=\"text-2xl font-bold text-gray-800 mb-6\">Best Candidates for Redaction Testing</h2>\n");
@@ -319,7 +144,7 @@ public class ReportBuilder {
             sb.append("                    </thead>\n");
             sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
 
-            for (String fileName : bestCandidates) {
+            for (final String fileName : bestCandidates) {
                 sb.append("                        <tr>\n");
                 sb.append(String.format("                            <td class=\"px-6 py-4 text-sm font-medium text-gray-900 break-all\">%s</td>\n", fileName));
                 sb.append(String.format("                            <td class=\"px-6 py-4 text-sm text-gray-600\">%d</td>\n", report.getPerFileCounts().get(fileName).size()));
@@ -350,24 +175,24 @@ public class ReportBuilder {
         sb.append("                    </thead>\n");
         sb.append("                    <tbody class=\"divide-y divide-gray-200\">\n");
 
-        Map<String, Integer> aggregate = report.getAggregateCounts();
-        Map<String, Double> weights = report.getWeights();
-        Map<String, PhinderReport.ConfidenceStats> aggregateConfidence = report.getAggregateConfidence();
+        final Map<String, Integer> aggregate = report.getAggregateCounts();
+        final Map<String, Double> weights = report.getWeights();
+        final Map<String, PhinderReport.ConfidenceStats> aggregateConfidence = report.getAggregateConfidence();
 
         if (aggregate.isEmpty()) {
             sb.append("                        <tr>\n");
             sb.append("                            <td colspan=\"5\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
             sb.append("                        </tr>\n");
         } else {
-            List<String> sortedTypes = new ArrayList<>(aggregate.keySet());
+            final List<String> sortedTypes = new ArrayList<>(aggregate.keySet());
             Collections.sort(sortedTypes);
 
-            for (String type : sortedTypes) {
-                int count = aggregate.get(type);
-                double weight = weights.getOrDefault(type, 1.0);
-                double magnitude = count * weight;
-                PhinderReport.ConfidenceStats stats = aggregateConfidence.get(type);
-                String confidenceInterval = stats != null ?
+            for (final String type : sortedTypes) {
+                final int count = aggregate.get(type);
+                final double weight = weights.getOrDefault(type, 1.0);
+                final double magnitude = count * weight;
+                final PhinderReport.ConfidenceStats stats = aggregateConfidence.get(type);
+                final String confidenceInterval = stats != null ?
                         String.format("%.2f - %.2f (avg: %.2f)", stats.getMin(), stats.getMax(), stats.getAverage()) : "N/A";
 
                 sb.append("                        <tr>\n");
@@ -390,11 +215,11 @@ public class ReportBuilder {
         sb.append("        <section>\n");
         sb.append("            <h2 class=\"text-2xl font-bold text-gray-800 mb-6\">Per-File Details</h2>\n");
 
-        List<String> sortedFiles = new ArrayList<>(report.getPerFileCounts().keySet());
+        final List<String> sortedFiles = new ArrayList<>(report.getPerFileCounts().keySet());
         Collections.sort(sortedFiles);
 
-        for (String fileName : sortedFiles) {
-            Map<String, Integer> counts = report.getPerFileCounts().get(fileName);
+        for (final String fileName : sortedFiles) {
+            final Map<String, Integer> counts = report.getPerFileCounts().get(fileName);
             sb.append("            <div class=\"bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8\">\n");
             sb.append("                <div class=\"bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-wrap justify-between items-center\">\n");
             sb.append(String.format("                    <h3 class=\"text-lg font-semibold text-gray-800 break-all mr-4\">%s</h3>\n", fileName));
@@ -420,16 +245,16 @@ public class ReportBuilder {
                 sb.append("                            <td colspan=\"5\" class=\"px-6 py-4 text-sm text-gray-500 italic\">No PII detected.</td>\n");
                 sb.append("                        </tr>\n");
             } else {
-                List<String> sortedTypes = new ArrayList<>(counts.keySet());
+                final List<String> sortedTypes = new ArrayList<>(counts.keySet());
                 Collections.sort(sortedTypes);
-                Map<String, PhinderReport.ConfidenceStats> fileConfStats = report.getPerFileConfidence().get(fileName);
+                final Map<String, PhinderReport.ConfidenceStats> fileConfStats = report.getPerFileConfidence().get(fileName);
 
-                for (String type : sortedTypes) {
-                    int count = counts.get(type);
-                    double weight = weights.getOrDefault(type, 1.0);
-                    double magnitude = count * weight;
-                    PhinderReport.ConfidenceStats stats = fileConfStats != null ? fileConfStats.get(type) : null;
-                    String confidenceInterval = stats != null ?
+                for (final String type : sortedTypes) {
+                    final int count = counts.get(type);
+                    final double weight = weights.getOrDefault(type, 1.0);
+                    final double magnitude = count * weight;
+                    final PhinderReport.ConfidenceStats stats = fileConfStats != null ? fileConfStats.get(type) : null;
+                    final String confidenceInterval = stats != null ?
                             String.format("%.2f - %.2f (avg: %.2f)", stats.getMin(), stats.getMax(), stats.getAverage()) : "N/A";
 
                     sb.append("                        <tr>\n");

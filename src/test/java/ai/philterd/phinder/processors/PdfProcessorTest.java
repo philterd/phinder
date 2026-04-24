@@ -35,21 +35,20 @@ public class PdfProcessorTest {
 
     @Test
     public void testSupports() {
-        PdfProcessor processor = new PdfProcessor();
-        assertTrue(processor.supports(new File("test.pdf")));
-        assertTrue(processor.supports(new File("TEST.PDF")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final PdfProcessor processor = new PdfProcessor();
+        assertTrue(processor.supports("application/pdf"));
+        assertFalse(processor.supports("text/plain"));
     }
 
     @Test
     public void testExtractText() throws Exception {
-        File pdfFile = tempDir.resolve("test.pdf").toFile();
-        String content = "Email: test-pdf@example.com";
+        final File pdfFile = tempDir.resolve("test.pdf").toFile();
+        final String content = "Email: test-pdf@example.com";
 
-        try (PDDocument document = new PDDocument()) {
-            PDPage page = new PDPage();
+        try (final PDDocument document = new PDDocument()) {
+            final PDPage page = new PDPage();
             document.addPage(page);
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+            try (final PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
                 contentStream.beginText();
                 contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
                 contentStream.newLineAtOffset(100, 700);
@@ -59,18 +58,18 @@ public class PdfProcessorTest {
             document.save(pdfFile);
         }
 
-        PdfProcessor processor = new PdfProcessor();
-        String extracted = processor.extractText(pdfFile);
+        final PdfProcessor processor = new PdfProcessor();
+        final String extracted = processor.extractText(pdfFile);
         assertTrue(extracted.contains(content));
     }
 
     @Test
     public void testWordCount() throws Exception {
-        File pdfFile = tempDir.resolve("test.pdf").toFile();
-        try (PDDocument document = new PDDocument()) {
-            PDPage page = new PDPage();
+        final File pdfFile = tempDir.resolve("test.pdf").toFile();
+        try (final PDDocument document = new PDDocument()) {
+            final PDPage page = new PDPage();
             document.addPage(page);
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+            try (final PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
                 contentStream.beginText();
                 contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
                 contentStream.newLineAtOffset(100, 700);
@@ -80,7 +79,7 @@ public class PdfProcessorTest {
             document.save(pdfFile);
         }
 
-        PdfProcessor processor = new PdfProcessor();
+        final PdfProcessor processor = new PdfProcessor();
         assertEquals(5, processor.getWordCount(pdfFile));
     }
 }

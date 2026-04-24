@@ -25,34 +25,40 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class LogProcessor implements DocumentProcessor {
 
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList(
+            "text/x-log",
+            "application/x-log"
+    );
+
     @Override
-    public String extractText(File file) throws IOException {
+    public String extractText(final File file) throws IOException {
         // We are overriding process() directly for log files to avoid loading the whole file into memory.
         // This method is not used for log files, but we must implement it to satisfy the interface.
         throw new UnsupportedOperationException("LogProcessor does not support extractText() to avoid memory issues.");
     }
 
     @Override
-    public List<Span> process(File file, Policy policy, Phinder phinder) throws Exception {
+    public List<Span> process(final File file, final Policy policy, final Phinder phinder) throws Exception {
         final Policy effectivePolicy = (policy != null) ? policy : phinder.createDefaultPolicy();
-        List<Span> allSpans = new ArrayList<>();
+        final List<Span> allSpans = new ArrayList<>();
 
         // First, check the filename itself for PII.
         allSpans.addAll(phinder.findPii(file.getName(), effectivePolicy));
 
         // Use a LineIterator to process the file line-by-line, avoiding loading it all into memory.
         int characterOffset = 0;
-        try (LineIterator it = FileUtils.lineIterator(file, StandardCharsets.UTF_8.name())) {
+        try (final LineIterator it = FileUtils.lineIterator(file, StandardCharsets.UTF_8.name())) {
             while (it.hasNext()) {
-                String line = it.next();
-                List<Span> lineSpans = phinder.findPii(line, effectivePolicy);
+                final String line = it.next();
+                final List<Span> lineSpans = phinder.findPii(line, effectivePolicy);
 
                 // Shift spans by the current character offset
-                for (Span span : lineSpans) {
+                for (final Span span : lineSpans) {
                     span.setCharacterStart(span.getCharacterStart() + characterOffset);
                     span.setCharacterEnd(span.getCharacterEnd() + characterOffset);
                     allSpans.add(span);
@@ -67,9 +73,9 @@ public class LogProcessor implements DocumentProcessor {
     }
 
     @Override
-    public long getWordCount(File file) throws IOException {
+    public long getWordCount(final File file) throws IOException {
         long wordCount = 0;
-        try (LineIterator it = FileUtils.lineIterator(file, StandardCharsets.UTF_8.name())) {
+        try (final LineIterator it = FileUtils.lineIterator(file, StandardCharsets.UTF_8.name())) {
             while (it.hasNext()) {
                 wordCount += countWords(it.next());
             }
@@ -78,8 +84,17 @@ public class LogProcessor implements DocumentProcessor {
     }
 
     @Override
-    public boolean supports(File file) {
-        return file.getName().toLowerCase().endsWith(".log");
+    public boolean supports(final String mimeType, final String fileName) {
+        if ("text/plain".equalsIgnoreCase(mimeType) && fileName != null && fileName.toLowerCase().endsWith(".log")) {
+            return true;
+        }
+
+        return supports(mimeType);
+    }
+
+    @Override
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

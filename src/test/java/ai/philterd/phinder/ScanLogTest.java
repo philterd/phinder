@@ -34,32 +34,26 @@ public class ScanLogTest {
 
     @Test
     public void testScanLogLifecycle() throws Exception {
-        String filePath = "/path/to/file.txt";
-        String hash = "hash123";
-
-        assertNull(scanLog.getFileHash(filePath));
-
-        scanLog.putFileHash(filePath, hash);
-        assertEquals(hash, scanLog.getFileHash(filePath));
-
-        scanLog.addScannedPath("/some/dir");
-        assertTrue(scanLog.getScannedPaths().contains("/some/dir"));
-
-        scanLog.clean();
-        assertNull(scanLog.getFileHash(filePath));
-        assertTrue(scanLog.getScannedPaths().isEmpty());
-    }
-
-    @Test
-    public void testSaveReport() {
-        PhinderReport report = new PhinderReport();
-        report.setSkippedFiles(5);
-        report.addFileResult("file1.txt", Collections.emptyList(), 100);
-
-        // This should not throw an exception
-        scanLog.saveReport(report);
-
-        // Verify that the report was saved
-        assertEquals(1, scanLog.getReportCount());
+        final File dbFile = tempDir.resolve("scan").toFile();
+        final ScanLog scanLog = new ScanLog(dbFile);
+        
+        try {
+            final String filePath = "/path/to/file.txt";
+            final String hash = "hash123";
+            
+            assertNull(scanLog.getFileHash(filePath));
+            
+            scanLog.putFileHash(filePath, hash);
+            assertEquals(hash, scanLog.getFileHash(filePath));
+            
+            scanLog.addScannedPath("/some/dir");
+            assertTrue(scanLog.getScannedPaths().contains("/some/dir"));
+            
+            scanLog.clean();
+            assertNull(scanLog.getFileHash(filePath));
+            assertTrue(scanLog.getScannedPaths().isEmpty());
+        } finally {
+            scanLog.close();
+        }
     }
 }

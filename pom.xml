@@ -90,22 +90,20 @@
           <version>1.8.1</version>
       </dependency>
       <dependency>
-      <groupId>org.mongodb</groupId>
-      <artifactId>mongodb-driver-sync</artifactId>
-      <version>4.10.2</version>
-    </dependency>
-    <dependency>
-      <groupId>de.bwaldvogel</groupId>
-      <artifactId>mongo-java-server-core</artifactId>
-      <version>1.44.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>de.bwaldvogel</groupId>
-      <artifactId>mongo-java-server-memory-backend</artifactId>
-      <version>1.44.0</version>
-      <scope>test</scope>
-    </dependency>
+          <groupId>com.h2database</groupId>
+          <artifactId>h2</artifactId>
+          <version>2.2.224</version>
+      </dependency>
+      <dependency>
+          <groupId>org.apache.tika</groupId>
+          <artifactId>tika-core</artifactId>
+          <version>1.28.5</version>
+      </dependency>
+      <dependency>
+          <groupId>com.sun.activation</groupId>
+          <artifactId>jakarta.activation</artifactId>
+          <version>2.0.1</version>
+      </dependency>
   </dependencies>
 
   <build>

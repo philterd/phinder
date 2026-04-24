@@ -27,9 +27,9 @@ public class PhinderReportTest {
 
     @Test
     public void testAddFileResult() {
-        PhinderReport report = new PhinderReport();
-        Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
-        Span span2 = Span.make(15, 25, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final PhinderReport report = new PhinderReport();
+        final Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final Span span2 = Span.make(15, 25, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
         
         report.addFileResult("file1.txt", List.of(span1, span2), 100);
         
@@ -41,10 +41,10 @@ public class PhinderReportTest {
 
     @Test
     public void testWeights() {
-        PhinderReport report = new PhinderReport();
+        final PhinderReport report = new PhinderReport();
         report.setWeight("email-address", 5.0);
         
-        Span span = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final Span span = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
         report.addFileResult("file1.txt", List.of(span), 10);
         
         assertEquals(5.0, report.getAggregateMagnitudeScore());
@@ -53,9 +53,9 @@ public class PhinderReportTest {
 
     @Test
     public void testAggregateMultipleFiles() {
-        PhinderReport report = new PhinderReport();
-        Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
-        Span span2 = Span.make(0, 10, FilterType.IP_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final PhinderReport report = new PhinderReport();
+        final Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final Span span2 = Span.make(0, 10, FilterType.IP_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
         
         report.addFileResult("file1.txt", List.of(span1), 10);
         report.addFileResult("file2.txt", List.of(span2), 20);
@@ -69,35 +69,35 @@ public class PhinderReportTest {
 
     @Test
     public void testSkippedFiles() {
-        PhinderReport report = new PhinderReport();
+        final PhinderReport report = new PhinderReport();
         report.setSkippedFiles(5);
         assertEquals(5, report.getSkippedFiles());
     }
 
     @Test
     public void testConfidenceStats() {
-        PhinderReport report = new PhinderReport();
-        Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.5, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
-        Span span2 = Span.make(15, 25, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
-        Span span3 = Span.make(30, 40, FilterType.EMAIL_ADDRESS, "context", 0.7, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final PhinderReport report = new PhinderReport();
+        final Span span1 = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 0.5, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final Span span2 = Span.make(15, 25, FilterType.EMAIL_ADDRESS, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final Span span3 = Span.make(30, 40, FilterType.EMAIL_ADDRESS, "context", 0.7, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
 
         report.addFileResult("file1.txt", List.of(span1, span2), 100);
         report.addFileResult("file2.txt", List.of(span3), 100);
 
-        PhinderReport.ConfidenceStats aggregateStats = report.getAggregateConfidence().get("email-address");
+        final PhinderReport.ConfidenceStats aggregateStats = report.getAggregateConfidence().get("email-address");
         assertNotNull(aggregateStats);
         assertEquals(0.5, aggregateStats.getMin(), 0.001);
         assertEquals(0.9, aggregateStats.getMax(), 0.001);
         assertEquals(0.7, aggregateStats.getAverage(), 0.001);
         assertEquals(3, aggregateStats.getCount());
 
-        PhinderReport.ConfidenceStats file1Stats = report.getPerFileConfidence().get("file1.txt").get("email-address");
+        final PhinderReport.ConfidenceStats file1Stats = report.getPerFileConfidence().get("file1.txt").get("email-address");
         assertEquals(0.5, file1Stats.getMin(), 0.001);
         assertEquals(0.9, file1Stats.getMax(), 0.001);
         assertEquals(0.7, file1Stats.getAverage(), 0.001);
         assertEquals(2, file1Stats.getCount());
 
-        PhinderReport.ConfidenceStats file2Stats = report.getPerFileConfidence().get("file2.txt").get("email-address");
+        final PhinderReport.ConfidenceStats file2Stats = report.getPerFileConfidence().get("file2.txt").get("email-address");
         assertEquals(0.7, file2Stats.getMin(), 0.001);
         assertEquals(0.7, file2Stats.getMax(), 0.001);
         assertEquals(0.7, file2Stats.getAverage(), 0.001);

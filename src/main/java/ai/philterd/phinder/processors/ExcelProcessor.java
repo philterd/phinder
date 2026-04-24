@@ -25,34 +25,40 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class ExcelProcessor implements DocumentProcessor {
 
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel"
+    );
+
     @Override
-    public String extractText(File file) throws IOException {
-        String name = file.getName().toLowerCase();
-        try (FileInputStream fis = new FileInputStream(file)) {
-            try (Workbook workbook = WorkbookFactory.create(fis)) {
+    public String extractText(final File file) throws IOException {
+        final String name = file.getName().toLowerCase();
+        try (final FileInputStream fis = new FileInputStream(file)) {
+            try (final Workbook workbook = WorkbookFactory.create(fis)) {
                 if (workbook instanceof HSSFWorkbook) {
-                    try (ExcelExtractor extractor = new ExcelExtractor((HSSFWorkbook) workbook)) {
+                    try (final ExcelExtractor extractor = new ExcelExtractor((HSSFWorkbook) workbook)) {
                         return extractor.getText();
                     }
                 } else if (workbook instanceof XSSFWorkbook) {
-                    try (XSSFExcelExtractor extractor = new XSSFExcelExtractor((XSSFWorkbook) workbook)) {
+                    try (final XSSFExcelExtractor extractor = new XSSFExcelExtractor((XSSFWorkbook) workbook)) {
                         return extractor.getText();
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException("Failed to extract text from Excel file: " + file.getName(), e);
         }
         return null;
     }
 
     @Override
-    public boolean supports(File file) {
-        String name = file.getName().toLowerCase();
-        return name.endsWith(".xlsx") || name.endsWith(".xls");
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

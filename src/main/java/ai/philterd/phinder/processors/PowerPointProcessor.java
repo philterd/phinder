@@ -24,28 +24,34 @@ import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class PowerPointProcessor implements DocumentProcessor {
 
+    private static final List<String> ACCEPTABLE_MIME_TYPES = Arrays.asList(
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-powerpoint"
+    );
+
     @Override
-    public String extractText(File file) throws IOException {
-        try (FileInputStream fis = new FileInputStream(file)) {
-            try (SlideShow<?, ?> slideshow = SlideShowFactory.create(fis)) {
-                try (SlideShowExtractor<?, ?> extractor = new SlideShowExtractor<>(slideshow)) {
+    public String extractText(final File file) throws IOException {
+        try (final FileInputStream fis = new FileInputStream(file)) {
+            try (final SlideShow<?, ?> slideshow = SlideShowFactory.create(fis)) {
+                try (final SlideShowExtractor<?, ?> extractor = new SlideShowExtractor<>(slideshow)) {
                     extractor.setCommentsByDefault(true);
                     extractor.setNotesByDefault(true);
                     return extractor.getText();
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException("Failed to extract text from PowerPoint file: " + file.getName(), e);
         }
     }
 
     @Override
-    public boolean supports(File file) {
-        String name = file.getName().toLowerCase();
-        return name.endsWith(".pptx") || name.endsWith(".ppt");
+    public boolean supports(final String mimeType) {
+        return mimeType != null && ACCEPTABLE_MIME_TYPES.stream().anyMatch(mimeType::equalsIgnoreCase);
     }
 
 }

@@ -34,41 +34,41 @@ public class PowerPointProcessorTest {
 
     @Test
     public void testSupports() {
-        PowerPointProcessor processor = new PowerPointProcessor();
-        assertTrue(processor.supports(new File("test.pptx")));
-        assertTrue(processor.supports(new File("test.ppt")));
-        assertFalse(processor.supports(new File("test.txt")));
+        final PowerPointProcessor processor = new PowerPointProcessor();
+        assertTrue(processor.supports("application/vnd.openxmlformats-officedocument.presentationml.presentation"));
+        assertTrue(processor.supports("application/vnd.ms-powerpoint"));
+        assertFalse(processor.supports("text/plain"));
     }
 
     @Test
     public void testExtractTextPpptx() throws Exception {
-        File pptxFile = tempDir.resolve("test.pptx").toFile();
+        final File pptxFile = tempDir.resolve("test.pptx").toFile();
 
-        try (XMLSlideShow ppt = new XMLSlideShow();
-             FileOutputStream out = new FileOutputStream(pptxFile)) {
-            XSLFSlide slide = ppt.createSlide();
-            XSLFTextBox shape = slide.createTextBox();
+        try (final XMLSlideShow ppt = new XMLSlideShow();
+             final FileOutputStream out = new FileOutputStream(pptxFile)) {
+            final XSLFSlide slide = ppt.createSlide();
+            final XSLFTextBox shape = slide.createTextBox();
             shape.setText("Email: ppt@example.com");
             ppt.write(out);
         }
 
-        PowerPointProcessor processor = new PowerPointProcessor();
-        String extracted = processor.extractText(pptxFile);
+        final PowerPointProcessor processor = new PowerPointProcessor();
+        final String extracted = processor.extractText(pptxFile);
         assertTrue(extracted.contains("ppt@example.com"));
     }
 
     @Test
     public void testWordCount() throws Exception {
-        File pptxFile = tempDir.resolve("test.pptx").toFile();
-        try (XMLSlideShow ppt = new XMLSlideShow();
-             FileOutputStream out = new FileOutputStream(pptxFile)) {
-            XSLFSlide slide = ppt.createSlide();
-            XSLFTextBox shape = slide.createTextBox();
+        final File pptxFile = tempDir.resolve("test.pptx").toFile();
+        try (final XMLSlideShow ppt = new XMLSlideShow();
+             final FileOutputStream out = new FileOutputStream(pptxFile)) {
+            final XSLFSlide slide = ppt.createSlide();
+            final XSLFTextBox shape = slide.createTextBox();
             shape.setText("This is a PowerPoint slide.");
             ppt.write(out);
         }
 
-        PowerPointProcessor processor = new PowerPointProcessor();
+        final PowerPointProcessor processor = new PowerPointProcessor();
         assertEquals(5, processor.getWordCount(pptxFile));
     }
 }
