@@ -8,8 +8,8 @@
   <name>phinder</name>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.release>21</maven.compiler.release>
-    <phileas.version>3.3.0</phileas.version>
+    <maven.compiler.release>25</maven.compiler.release>
+    <phileas.version>4.1.0</phileas.version>
   </properties>
   <dependencies>
     <dependency>
