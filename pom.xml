@@ -42,12 +42,18 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>25</maven.compiler.release>
     <phileas.version>4.1.0</phileas.version>
+    <phisql.version>1.1.0</phisql.version>
   </properties>
   <dependencies>
     <dependency>
       <groupId>ai.philterd</groupId>
       <artifactId>phileas</artifactId>
       <version>${phileas.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ai.philterd</groupId>
+      <artifactId>phisql</artifactId>
+      <version>${phisql.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>

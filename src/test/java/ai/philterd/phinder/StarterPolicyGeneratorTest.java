@@ -18,6 +18,8 @@ package ai.philterd.phinder;
 import ai.philterd.phileas.model.filtering.Span;
 import ai.philterd.phileas.policy.Identifiers;
 import ai.philterd.phileas.policy.Policy;
+import ai.philterd.phisql.CompileResult;
+import ai.philterd.phisql.Compiler;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 
@@ -121,6 +123,35 @@ public class StarterPolicyGeneratorTest {
             }
         }
         return count;
+    }
+
+    @Test
+    public void generatedPhiSqlCompilesToALoadablePolicy() throws Exception {
+        final StarterPolicyGenerator.PhiSqlResult result =
+                StarterPolicyGenerator.generatePhiSql(List.of("email-address", "ssn"));
+
+        assertTrue(result.getPhiSql().contains("REDACT EMAIL_ADDRESS WITH REDACT;"));
+        assertTrue(result.getPhiSql().contains("REDACT SSN WITH REDACT;"));
+        assertTrue(result.getEnabledTypes().contains("email-address"));
+        assertTrue(result.getEnabledTypes().contains("ssn"));
+
+        // The PhiSQL must compile, and the compiled JSON must load unchanged into Phileas.
+        final CompileResult compiled = new Compiler().compile(result.getPhiSql());
+        final Policy loaded = new Gson().fromJson(compiled.toJsonString(), Policy.class);
+        assertNotNull(loaded.getIdentifiers().getEmailAddress());
+        assertNotNull(loaded.getIdentifiers().getSsn());
+    }
+
+    @Test
+    public void phiSqlCoversTheSameSupportedTypesAsJson() {
+        // Every type the JSON generator supports must also map to a PhiSQL entity (and vice versa),
+        // so the two output formats stay in lockstep.
+        for (final String type : StarterPolicyGenerator.supportedTypes()) {
+            final StarterPolicyGenerator.PhiSqlResult result =
+                    StarterPolicyGenerator.generatePhiSql(List.of(type));
+            assertTrue(result.getEnabledTypes().contains(type), "PhiSQL missing support for " + type);
+            assertTrue(result.getUnsupportedTypes().isEmpty(), "unexpected unsupported for " + type);
+        }
     }
 
     @Test

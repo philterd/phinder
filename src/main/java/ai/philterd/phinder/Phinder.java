@@ -97,7 +97,7 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"--mongodb"}, description = "The MongoDB URI.")
     private String mongoDbUri;
 
-    @Option(names = {"--emit-policy"}, description = "Write a starter redaction policy (JSON) to this file, enabling the entity types found in the scan. A starting point to tune, not a guarantee.")
+    @Option(names = {"--emit-policy"}, description = "Write a starter redaction policy to this file, enabling the entity types found in the scan. Emits PhiSQL when the file ends in .phisql, otherwise JSON. A starting point to tune, not a guarantee.")
     private File emitPolicyFile;
 
     private PlainTextFilterService filterService;
@@ -372,18 +372,36 @@ public class Phinder implements Callable<Integer> {
     // point to review, tune, and measure, not a guarantee that every value will be redacted.
     private void emitStarterPolicy(final PhinderReport report) throws IOException {
 
-        final StarterPolicyGenerator.Result result =
-                StarterPolicyGenerator.generate(report.getAggregateCounts().keySet());
+        final java.util.Set<String> detected = report.getAggregateCounts().keySet();
+        final boolean asPhiSql = emitPolicyFile.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".phisql");
 
-        Files.writeString(emitPolicyFile.toPath(), result.toJson());
+        final java.util.Set<String> enabled;
+        final java.util.Set<String> unsupported;
+
+        if (asPhiSql) {
+            final StarterPolicyGenerator.PhiSqlResult result = StarterPolicyGenerator.generatePhiSql(detected);
+            // Validate what we are about to write actually compiles, so Phinder never emits PhiSQL
+            // that Philter or Phileas cannot load.
+            if (!result.getPhiSql().isBlank()) {
+                new ai.philterd.phisql.Compiler().compile(result.getPhiSql());
+            }
+            Files.writeString(emitPolicyFile.toPath(), result.getPhiSql());
+            enabled = result.getEnabledTypes();
+            unsupported = result.getUnsupportedTypes();
+        } else {
+            final StarterPolicyGenerator.Result result = StarterPolicyGenerator.generate(detected);
+            Files.writeString(emitPolicyFile.toPath(), result.toJson());
+            enabled = result.getEnabledTypes();
+            unsupported = result.getUnsupportedTypes();
+        }
 
         System.out.println();
-        System.out.printf("Wrote a starter redaction policy to %s (%d entity type(s): %s).%n",
-                emitPolicyFile.getAbsolutePath(), result.getEnabledTypes().size(),
-                String.join(", ", result.getEnabledTypes()));
-        if (!result.getUnsupportedTypes().isEmpty()) {
+        System.out.printf("Wrote a starter redaction policy (%s) to %s (%d entity type(s): %s).%n",
+                asPhiSql ? "PhiSQL" : "JSON", emitPolicyFile.getAbsolutePath(), enabled.size(),
+                String.join(", ", enabled));
+        if (!unsupported.isEmpty()) {
             System.out.printf("Detected types with no direct policy mapping (skipped): %s.%n",
-                    String.join(", ", result.getUnsupportedTypes()));
+                    String.join(", ", unsupported));
         }
         System.out.println("This is a starter policy to review, tune, and measure (for example with "
                 + "Philter Scope) before relying on it. Redaction is probabilistic; validate it "

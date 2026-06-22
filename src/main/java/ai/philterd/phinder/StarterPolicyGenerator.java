@@ -123,6 +123,96 @@ public final class StarterPolicyGenerator {
         return new TreeSet<>(builders().keySet());
     }
 
+    /** A starter policy in PhiSQL form, plus which detected types it covers and which it could not map. */
+    public static final class PhiSqlResult {
+
+        private final String phiSql;
+        private final Set<String> enabledTypes;
+        private final Set<String> unsupportedTypes;
+
+        PhiSqlResult(final String phiSql, final Set<String> enabledTypes, final Set<String> unsupportedTypes) {
+            this.phiSql = phiSql;
+            this.enabledTypes = enabledTypes;
+            this.unsupportedTypes = unsupportedTypes;
+        }
+
+        public String getPhiSql() {
+            return phiSql;
+        }
+
+        public Set<String> getEnabledTypes() {
+            return enabledTypes;
+        }
+
+        public Set<String> getUnsupportedTypes() {
+            return unsupportedTypes;
+        }
+    }
+
+    /**
+     * Build a starter policy in PhiSQL: a {@code REDACT <ENTITY> WITH REDACT;} statement for each
+     * detected type that maps to a PhiSQL entity. PhiSQL compiles to the same redaction-policy JSON
+     * as {@link #generate(Collection)}; it is offered as a friendlier authoring format to tune.
+     *
+     * @param detectedTypes the filter-type tokens found in a scan.
+     * @return the PhiSQL source and the enabled / unsupported type sets.
+     */
+    public static PhiSqlResult generatePhiSql(final Collection<String> detectedTypes) {
+
+        final Map<String, String> entities = phiSqlEntities();
+        final Set<String> enabled = new TreeSet<>();
+        final Set<String> unsupported = new TreeSet<>();
+        final StringBuilder sb = new StringBuilder();
+
+        for (final String type : new TreeSet<>(detectedTypes)) {
+            final String entity = entities.get(type);
+            if (entity != null) {
+                sb.append("REDACT ").append(entity).append(" WITH REDACT;").append(System.lineSeparator());
+                enabled.add(type);
+            } else {
+                unsupported.add(type);
+            }
+        }
+
+        return new PhiSqlResult(sb.toString(), enabled, unsupported);
+    }
+
+    // Maps each detected filter-type token to its PhiSQL entity name. Sourced from the PhiSQL entity
+    // catalog (spec/v1.0/catalog/entity-types.yaml). The set matches the JSON builders above.
+    private static Map<String, String> phiSqlEntities() {
+        final Map<String, String> m = new HashMap<>();
+        m.put(FilterType.AGE.getType(), "AGE");
+        m.put(FilterType.BANK_ROUTING_NUMBER.getType(), "BANK_ROUTING_NUMBER");
+        m.put(FilterType.BITCOIN_ADDRESS.getType(), "BITCOIN_ADDRESS");
+        m.put(FilterType.LOCATION_CITY.getType(), "CITY");
+        m.put(FilterType.LOCATION_COUNTY.getType(), "COUNTY");
+        m.put(FilterType.CREDIT_CARD.getType(), "CREDIT_CARD");
+        m.put(FilterType.CURRENCY.getType(), "CURRENCY");
+        m.put(FilterType.DATE.getType(), "DATE");
+        m.put(FilterType.DRIVERS_LICENSE_NUMBER.getType(), "DRIVERS_LICENSE");
+        m.put(FilterType.EMAIL_ADDRESS.getType(), "EMAIL_ADDRESS");
+        m.put(FilterType.FIRST_NAME.getType(), "FIRST_NAME");
+        m.put(FilterType.HOSPITAL.getType(), "HOSPITAL");
+        m.put(FilterType.IBAN_CODE.getType(), "IBAN_CODE");
+        m.put(FilterType.IP_ADDRESS.getType(), "IP_ADDRESS");
+        m.put(FilterType.MAC_ADDRESS.getType(), "MAC_ADDRESS");
+        m.put(FilterType.MEDICAL_CONDITION.getType(), "MEDICAL_CONDITION");
+        m.put(FilterType.PASSPORT_NUMBER.getType(), "PASSPORT_NUMBER");
+        m.put(FilterType.PHONE_NUMBER.getType(), "PHONE_NUMBER");
+        m.put(FilterType.PHONE_NUMBER_EXTENSION.getType(), "PHONE_NUMBER_EXTENSION");
+        m.put(FilterType.PHYSICIAN_NAME.getType(), "PHYSICIAN_NAME");
+        m.put(FilterType.SSN.getType(), "SSN");
+        m.put(FilterType.LOCATION_STATE.getType(), "STATE");
+        m.put(FilterType.STATE_ABBREVIATION.getType(), "STATE_ABBREVIATION");
+        m.put(FilterType.STREET_ADDRESS.getType(), "STREET_ADDRESS");
+        m.put(FilterType.SURNAME.getType(), "SURNAME");
+        m.put(FilterType.TRACKING_NUMBER.getType(), "TRACKING_NUMBER");
+        m.put(FilterType.URL.getType(), "URL");
+        m.put(FilterType.VIN.getType(), "VIN");
+        m.put(FilterType.ZIP_CODE.getType(), "ZIP_CODE");
+        return m;
+    }
+
     // A REDACT strategy is the safe, schema-valid default for a starter policy; the user tunes from
     // there (mask, encrypt, replace, conditions, and so on).
     private static <T> List<T> redact(final T strategy) {

@@ -43,7 +43,7 @@ java -jar phinder.jar -i my_docs/ -R --emit-policy starter-policy.json
 The flow is scan, then policy, then apply:
 
 1. **Scan.** Phinder finds the entity types present across the inputs.
-2. **Policy.** It writes redaction-policy JSON that enables each detected type with a `REDACT` strategy. The output loads unchanged into Philter or Phileas. Types that need a supplied custom policy to detect (custom identifiers, sections, or PhEye name detection) are reported as skipped rather than guessed at.
+2. **Policy.** It writes redaction-policy JSON that enables each detected type with a `REDACT` strategy. The output loads unchanged into Philter or Phileas. Use a `.phisql` file extension to get the policy as [PhiSQL](https://github.com/philterd/phisql) instead, which compiles to the same JSON. Types that need a supplied custom policy to detect (custom identifiers, sections, or PhEye name detection) are reported as skipped rather than guessed at.
 3. **Apply.** Use the policy with Philter or Phileas directly, or tune it first (change strategies, add conditions, ignore terms) and re-run.
 
 This is a starting point to review, tune, and measure (for example with [Philter Scope](https://www.philterd.ai/philter-scope/)) before you rely on it. Redaction is probabilistic: it reduces how much sensitive data gets through, it does not catch every instance, and you are responsible for validating the policy against your own data.

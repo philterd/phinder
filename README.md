@@ -43,7 +43,7 @@ Phinder can turn a scan into a starter [Philter](https://www.philterd.ai/philter
 java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R --emit-policy starter-policy.json
 ```
 
-The output is redaction-policy JSON that loads unchanged into Philter or Phileas. Each detected type is enabled with a `REDACT` strategy. Apply it directly, or tune it first (change strategies, add conditions, ignore terms) and re-run.
+The output is redaction-policy JSON that loads unchanged into Philter or Phileas. Each detected type is enabled with a `REDACT` strategy. Apply it directly, or tune it first (change strategies, add conditions, ignore terms) and re-run. Use a `.phisql` file extension to get the policy as [PhiSQL](https://github.com/philterd/phisql) instead, which compiles to the same JSON.
 
 This is a starting point to review, tune, and measure (for example with [Philter Scope](https://www.philterd.ai/philter-scope/)) before you rely on it. Redaction is probabilistic: it reduces how much sensitive data gets through, it does not catch every instance, and you are responsible for validating the policy against your own data. Types that need a supplied custom policy to detect (custom identifiers, sections, or PhEye name detection) are reported as skipped rather than guessed at.
 
