@@ -97,6 +97,9 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"--mongodb"}, description = "The MongoDB URI.")
     private String mongoDbUri;
 
+    @Option(names = {"--emit-policy"}, description = "Write a starter redaction policy (JSON) to this file, enabling the entity types found in the scan. A starting point to tune, not a guarantee.")
+    private File emitPolicyFile;
+
     private PlainTextFilterService filterService;
 
     public static void main(final String[] args) {
@@ -238,6 +241,10 @@ public class Phinder implements Callable<Integer> {
             report.setSkippedFiles(skippedCount);
             generateReport(report);
 
+            if (emitPolicyFile != null) {
+                emitStarterPolicy(report);
+            }
+
             return exitCode;
 
         } finally {
@@ -358,6 +365,29 @@ public class Phinder implements Callable<Integer> {
     private void generateReport(final PhinderReport report) throws Exception {
         final ReportBuilder reportBuilder = new ReportBuilder();
         reportBuilder.build(report, mongoDbUri);
+    }
+
+    // Generate a starter redaction policy from the entity types the scan found and write it to the
+    // requested file. The policy enables each detected type with a REDACT strategy; it is a starting
+    // point to review, tune, and measure, not a guarantee that every value will be redacted.
+    private void emitStarterPolicy(final PhinderReport report) throws IOException {
+
+        final StarterPolicyGenerator.Result result =
+                StarterPolicyGenerator.generate(report.getAggregateCounts().keySet());
+
+        Files.writeString(emitPolicyFile.toPath(), result.toJson());
+
+        System.out.println();
+        System.out.printf("Wrote a starter redaction policy to %s (%d entity type(s): %s).%n",
+                emitPolicyFile.getAbsolutePath(), result.getEnabledTypes().size(),
+                String.join(", ", result.getEnabledTypes()));
+        if (!result.getUnsupportedTypes().isEmpty()) {
+            System.out.printf("Detected types with no direct policy mapping (skipped): %s.%n",
+                    String.join(", ", result.getUnsupportedTypes()));
+        }
+        System.out.println("This is a starter policy to review, tune, and measure (for example with "
+                + "Philter Scope) before relying on it. Redaction is probabilistic; validate it "
+                + "against your own data.");
     }
 
     public Policy createDefaultPolicy() throws IOException {

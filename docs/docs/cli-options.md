@@ -7,6 +7,7 @@ Phinder is a command-line application. Below is a list of all available options.
 | `-i`   | `--input`          | **Required.** The input file(s) or directories to scan. Repeat for multiple.  |
 | `-R`   | `--recursive`      | Recursively traverse subdirectories if directories are provided.                       |
 | `-p`   | `--policy`         | Path to a custom Phileas policy (JSON file).                                           |
+|        | `--emit-policy`    | Write a starter redaction policy (JSON) covering the entity types found, to the given file. |
 | `-w`   | `--weights`        | Path to custom PII weights (JSON file).                                                |
 | `-l`   | `--log`            | Enable the scan log using a MongoDB database.                                         |
 | `-s`   | `--skip-unchanged` | Skip scanning files that haven't changed since the last scan log.                      |
@@ -29,4 +30,10 @@ java -jar phinder.jar -i file1.txt -i file2.docx
 
 ```bash
 java -jar phinder.jar -i my_docs/ -R -w weights.json
+```
+
+### Generate a starter redaction policy from a scan
+
+```bash
+java -jar phinder.jar -i my_docs/ -R --emit-policy starter-policy.json
 ```

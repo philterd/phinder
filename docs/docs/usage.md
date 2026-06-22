@@ -32,6 +32,22 @@ When processing CSV files, you can specify the delimiter and quote character:
 java -jar phinder.jar -i data.csv --csv-delimiter=";" --csv-quote="'"
 ```
 
+## Generating a Starter Redaction Policy
+
+Phinder can turn a scan into a starter [Philter](https://www.philterd.ai/philter/) / [Phileas](https://www.philterd.ai/phileas/) redaction policy, so discovery and redaction become one workflow. Add `--emit-policy` with an output file:
+
+```bash
+java -jar phinder.jar -i my_docs/ -R --emit-policy starter-policy.json
+```
+
+The flow is scan, then policy, then apply:
+
+1. **Scan.** Phinder finds the entity types present across the inputs.
+2. **Policy.** It writes redaction-policy JSON that enables each detected type with a `REDACT` strategy. The output loads unchanged into Philter or Phileas. Types that need a supplied custom policy to detect (custom identifiers, sections, or PhEye name detection) are reported as skipped rather than guessed at.
+3. **Apply.** Use the policy with Philter or Phileas directly, or tune it first (change strategies, add conditions, ignore terms) and re-run.
+
+This is a starting point to review, tune, and measure (for example with [Philter Scope](https://www.philterd.ai/philter-scope/)) before you rely on it. Redaction is probabilistic: it reduces how much sensitive data gets through, it does not catch every instance, and you are responsible for validating the policy against your own data.
+
 ## Large File Support
 
 Phinder is designed to handle very large files efficiently. Specifically, `.log` files are processed line-by-line to minimize heap usage.
