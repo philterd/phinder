@@ -11,4 +11,5 @@ Notable changes to Phinder, most recent first.
 
 ### Changed
 
-- **Now built on Phileas 4.1.0 and Java 25** (previously Phileas 3.3.0 and Java 21), and depends on PhiSQL 1.1.0 for the PhiSQL policy output.
+- **Now built on Phileas 4.2.0 and Java 25** (previously Phileas 3.3.0 and Java 21), and depends on PhiSQL 1.3.0 for the PhiSQL policy output.
+- **Dependencies updated.** Apache Tika 4.0.0, the MongoDB driver 5.11.0, simple-java-mail 9.3.2, and JUnit Jupiter 6.1.3 are major-version upgrades; Apache POI 5.5.1, Tess4J 5.20.0, commons-csv 1.14.1, commons-io 2.22.0, PDFBox 3.0.8, picocli 4.7.7, lz4-java 1.11.2, and mongo-java-server 1.47.0 (test) are minor or patch upgrades. Build plugins moved to maven-compiler 3.15.0, maven-shade 3.6.2, and central-publishing 0.11.0. Log4j is deliberately held at 2.25.4: the only newer release is 3.0.0-beta3, and a beta does not belong in a published build.
