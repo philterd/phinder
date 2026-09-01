@@ -1,6 +1,6 @@
 # Phinder
 
-A Java application that uses [Phileas](https://github.com/philterd/phileas) to identify PII (Personally Identifiable Information) in text across a wide variety of file formats. Types of PII are scored by magnitude, density, and confidence. A list of files suggested for redaction testing will be generated.
+A Java application that uses [Phileas](https://github.com/philterd/phileas) to identify PII (Personally Identifiable Information) in text across a wide variety of file formats. Types of PII are scored by risk, magnitude, density, and confidence, so the most sensitive findings can be prioritized. A list of files suggested for redaction testing will be generated.
 
 The goal of Phinder is to provide a comprehensive analysis of PII to help you take the next step to redact it with [Philter](https://github.com/philterd/philter). Note that Phinder may support more file types than Philter.
 
@@ -34,6 +34,16 @@ java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R
 > Processing images requires tesseract-ocr to be installed.
 
 At the completion of the scan, `report.json` and `report.html` files will be generated in the current directory.
+
+### Prioritize by risk
+
+Phinder scores every file by how sensitive the PII in it is, not just how much of it there is, so you can decide what to remediate first. The **Risk Score** combines the severity of each entity type, how many occurrences were found, and how confident the detector was, and every score is reported with a risk level from `NONE` to `CRITICAL`:
+
+```bash
+java -jar target/phinder-1.0.0-SNAPSHOT.jar -i src/test/resources/ -R --sort-by risk --min-risk 50 --top 10
+```
+
+A file with two Social Security numbers ranks above a file with fifty city names. Severities ship with a built-in default per entity type and can be tuned with `--severities`; see the [risk scoring documentation](https://philterd.github.io/phinder/configuration/risk-scoring/) for the table and the formula. The score is a way to order your work, not a compliance determination: detection is probabilistic, and you are responsible for reviewing the findings against your own data.
 
 ### Generate a starter redaction policy
 

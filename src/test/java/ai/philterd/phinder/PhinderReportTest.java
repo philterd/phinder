@@ -19,7 +19,9 @@ import ai.philterd.phileas.model.filtering.FilterType;
 import ai.philterd.phileas.model.filtering.Span;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -111,5 +113,110 @@ public class PhinderReportTest {
         assertEquals(0.7, file2Stats.getMax(), 0.001);
         assertEquals(0.7, file2Stats.getAverage(), 0.001);
         assertEquals(1, file2Stats.getCount());
+    }
+
+    @Test
+    public void testRiskScoreRanksSensitivityAboveVolume() {
+        // The case from the issue: a pile of first names must not outrank a pile of SSNs.
+        final PhinderReport report = new PhinderReport();
+
+        final List<Span> ssns = new ArrayList<>();
+        for (int i = 0; i < 500; i++) {
+            ssns.add(Span.make(0, 10, FilterType.SSN, "context", 1.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0));
+        }
+        report.addFileResult("ssns.txt", ssns, 5000);
+
+        final List<Span> names = List.of(
+                Span.make(0, 10, FilterType.FIRST_NAME, "context", 1.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0),
+                Span.make(15, 25, FilterType.FIRST_NAME, "context", 1.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0));
+        report.addFileResult("names.txt", names, 5000);
+
+        assertEquals(5000.0, report.getFileRiskScore("ssns.txt"), 0.0001);
+        assertEquals(6.0, report.getFileRiskScore("names.txt"), 0.0001);
+        assertEquals(RiskScorer.RiskLevel.CRITICAL, report.getFileRiskLevel("ssns.txt"));
+        assertEquals(RiskScorer.RiskLevel.LOW, report.getFileRiskLevel("names.txt"));
+
+        assertEquals(5006.0, report.getAggregateRiskScore(), 0.0001);
+        assertEquals(RiskScorer.RiskLevel.CRITICAL, report.getAggregateRiskLevel());
+    }
+
+    @Test
+    public void testRiskScoreDiscountsLowConfidence() {
+        final PhinderReport report = new PhinderReport();
+        final Span certain = Span.make(0, 10, FilterType.SSN, "context", 1.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        final Span unsure = Span.make(0, 10, FilterType.SSN, "context", 0.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+
+        report.addFileResult("certain.txt", List.of(certain), 100);
+        report.addFileResult("unsure.txt", List.of(unsure), 100);
+
+        assertEquals(10.0, report.getFileRiskScore("certain.txt"), 0.0001);
+        // Half credit rather than none: a low-confidence hit is still worth looking at.
+        assertEquals(5.0, report.getFileRiskScore("unsure.txt"), 0.0001);
+    }
+
+    @Test
+    public void testSeverityOverride() {
+        final PhinderReport report = new PhinderReport();
+        final Span span = Span.make(0, 10, FilterType.EMAIL_ADDRESS, "context", 1.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        report.addFileResult("file1.txt", List.of(span), 10);
+
+        assertEquals(RiskScorer.defaultSeverity("email-address"), report.getSeverity("email-address"));
+
+        report.setSeverity("email-address", 20.0);
+
+        assertEquals(20.0, report.getSeverity("email-address"));
+        assertEquals(20.0, report.getFileRiskScore("file1.txt"), 0.0001);
+        assertEquals(Map.of("email-address", 20.0), report.getSeverityOverrides());
+        assertEquals(Map.of("email-address", 20.0), report.getEffectiveSeverities());
+    }
+
+    @Test
+    public void testEffectiveSeveritiesCoverOnlyDetectedTypes() {
+        final PhinderReport report = new PhinderReport();
+        final Span span = Span.make(0, 10, FilterType.SSN, "context", 1.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        report.addFileResult("file1.txt", List.of(span), 10);
+
+        assertEquals(Map.of("ssn", RiskScorer.defaultSeverity("ssn")), report.getEffectiveSeverities());
+        assertTrue(report.getSeverityOverrides().isEmpty());
+    }
+
+    @Test
+    public void testRiskScoreIsIndependentOfMagnitudeWeights() {
+        // Weights tune the magnitude score only, so an existing weights file cannot move the risk score.
+        final PhinderReport report = new PhinderReport();
+        report.setWeight("ssn", 100.0);
+        final Span span = Span.make(0, 10, FilterType.SSN, "context", 1.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0);
+        report.addFileResult("file1.txt", List.of(span), 10);
+
+        assertEquals(100.0, report.getAggregateMagnitudeScore(), 0.0001);
+        assertEquals(10.0, report.getAggregateRiskScore(), 0.0001);
+    }
+
+    @Test
+    public void testAggregateRiskIsTheSumOfTheFileRisks() {
+        // A reader adding up the per-file Risk Scores must land on the aggregate the report shows,
+        // even though each file averages its own confidence separately.
+        final PhinderReport report = new PhinderReport();
+        report.addFileResult("a.txt", List.of(
+                Span.make(0, 10, FilterType.SSN, "context", 0.9, "replacement", "salt", "window", true, true, new String[]{"test"}, 0),
+                Span.make(15, 25, FilterType.LOCATION_CITY, "context", 1.0, "replacement", "salt", "window", true, true, new String[]{"test"}, 0)), 200);
+        report.addFileResult("b.txt", List.of(
+                Span.make(0, 10, FilterType.SSN, "context", 0.3, "replacement", "salt", "window", true, true, new String[]{"test"}, 0)), 200);
+        report.addFileResult("c.txt", List.of(), 200);
+
+        final double sumOfFiles = report.getFileRiskScore("a.txt")
+                + report.getFileRiskScore("b.txt")
+                + report.getFileRiskScore("c.txt");
+
+        assertEquals(sumOfFiles, report.getAggregateRiskScore(), 0.0001);
+    }
+
+    @Test
+    public void testRiskScoreOfAnEmptyReport() {
+        final PhinderReport report = new PhinderReport();
+        assertEquals(0.0, report.getAggregateRiskScore(), 0.0001);
+        assertEquals(RiskScorer.RiskLevel.NONE, report.getAggregateRiskLevel());
+        assertEquals(0.0, report.getFileRiskScore("never-scanned.txt"), 0.0001);
+        assertEquals(RiskScorer.RiskLevel.NONE, report.getFileRiskLevel("never-scanned.txt"));
     }
 }

@@ -82,8 +82,20 @@ public class Phinder implements Callable<Integer> {
     @Option(names = {"--csv-quote"}, description = "The CSV quote character (default: \").", defaultValue = "\"")
     private char csvQuote;
 
-    @Option(names = {"-w", "--weights"}, description = "The PII weights (JSON file).")
+    @Option(names = {"-w", "--weights"}, description = "The PII weights (JSON file) used for the magnitude score.")
     private File weightsFile;
+
+    @Option(names = {"--severities"}, description = "PII risk severities (JSON file) overriding the built-in severity of each entity type in the risk score.")
+    private File severitiesFile;
+
+    @Option(names = {"--sort-by"}, description = "Order the per-file report sections by: ${COMPLETION-CANDIDATES}.", defaultValue = "RISK")
+    private ReportOptions.SortBy sortBy;
+
+    @Option(names = {"--min-risk"}, description = "Omit files scoring below this risk score from the per-file report sections. Aggregate totals still cover the whole scan.", defaultValue = "0")
+    private double minRisk;
+
+    @Option(names = {"--top"}, description = "How many files to list as candidates for redaction testing (default: 20).", defaultValue = "20")
+    private int top;
 
     @Option(names = {"-l", "--log"}, description = "Enable the scan log using a MongoDB database.")
     private boolean log;
@@ -103,7 +115,9 @@ public class Phinder implements Callable<Integer> {
     private PlainTextFilterService filterService;
 
     public static void main(final String[] args) {
-        final int exitCode = new CommandLine(new Phinder()).execute(args);
+        final int exitCode = new CommandLine(new Phinder())
+                .setCaseInsensitiveEnumValuesAllowed(true)
+                .execute(args);
         System.exit(exitCode);
     }
 
@@ -188,6 +202,26 @@ public class Phinder implements Callable<Integer> {
                         final String key = String.valueOf(entry.getKey());
                         final Double value = Double.valueOf(String.valueOf(entry.getValue()));
                         report.setWeight(key, value);
+                    }
+                }
+            }
+
+            if (severitiesFile != null) {
+
+                if (!severitiesFile.exists()) {
+                    System.err.println("Severities file does not exist: " + severitiesFile.getAbsolutePath());
+                    return 1;
+                }
+
+                final String severitiesJson = FileUtils.readFileToString(severitiesFile, StandardCharsets.UTF_8);
+                final Gson gson = new Gson();
+                final Map<String, Object> severitiesMap = gson.fromJson(severitiesJson, Map.class);
+
+                if (severitiesMap != null) {
+                    for (final Map.Entry<String, Object> entry : severitiesMap.entrySet()) {
+                        final String key = String.valueOf(entry.getKey());
+                        final Double value = Double.valueOf(String.valueOf(entry.getValue()));
+                        report.setSeverity(key, value);
                     }
                 }
             }
@@ -348,6 +382,8 @@ public class Phinder implements Callable<Integer> {
                     System.out.printf(" - %s (type: %s, confidence: %.2f)\n",
                             span.getText(), span.getFilterType(), span.getConfidence());
                 }
+                System.out.printf("Risk Score: %.2f (%s)\n", report.getFileRiskScore(inputFile.getAbsolutePath()),
+                        report.getFileRiskLevel(inputFile.getAbsolutePath()));
                 System.out.printf("Magnitude Score: %.2f\n", report.getFileMagnitudeScore(inputFile.getAbsolutePath()));
                 System.out.printf("Density Score: %.4f\n", report.getFileDensityScore(inputFile.getAbsolutePath()));
             }
@@ -364,7 +400,7 @@ public class Phinder implements Callable<Integer> {
 
     private void generateReport(final PhinderReport report) throws Exception {
         final ReportBuilder reportBuilder = new ReportBuilder();
-        reportBuilder.build(report, mongoDbUri);
+        reportBuilder.build(report, mongoDbUri, new ReportOptions(sortBy, minRisk, top));
     }
 
     // Generate a starter redaction policy from the entity types the scan found and write it to the

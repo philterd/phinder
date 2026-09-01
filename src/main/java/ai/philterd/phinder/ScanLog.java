@@ -94,6 +94,14 @@ public class ScanLog implements AutoCloseable {
         doc.append("skipped_files", report.getSkippedFiles());
         doc.append("aggregate_magnitude_score", report.getAggregateMagnitudeScore());
         doc.append("aggregate_density_score", report.getAggregateDensityScore());
+        doc.append("aggregate_risk_score", report.getAggregateRiskScore());
+        doc.append("aggregate_risk_level", report.getAggregateRiskLevel().name());
+
+        Document severitiesDoc = new Document();
+        for (Map.Entry<String, Double> entry : report.getEffectiveSeverities().entrySet()) {
+            severitiesDoc.append(entry.getKey(), entry.getValue());
+        }
+        doc.append("severities", severitiesDoc);
 
         Document aggregateCountsDoc = new Document();
         for (Map.Entry<String, Integer> entry : report.getAggregateCounts().entrySet()) {
@@ -118,6 +126,8 @@ public class ScanLog implements AutoCloseable {
             fileDoc.append("file_path", filePath);
             fileDoc.append("magnitude_score", report.getFileMagnitudeScore(filePath));
             fileDoc.append("density_score", report.getFileDensityScore(filePath));
+            fileDoc.append("risk_score", report.getFileRiskScore(filePath));
+            fileDoc.append("risk_level", report.getFileRiskLevel(filePath).name());
 
             Document countsDoc = new Document();
             for (Map.Entry<String, Integer> entry : report.getPerFileCounts().get(filePath).entrySet()) {

@@ -17,6 +17,7 @@ package ai.philterd.phinder;
 
 import ai.philterd.phileas.model.filtering.Span;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ public class PhinderReport {
     private final Map<String, Long> perFileWordCounts = new HashMap<>();
     private final Map<String, Integer> aggregateCounts = new HashMap<>();
     private final Map<String, Double> weights = new HashMap<>();
+    private final Map<String, Double> severities = new HashMap<>();
     private final Map<String, ConfidenceStats> aggregateConfidence = new HashMap<>();
     private final Map<String, Map<String, ConfidenceStats>> perFileConfidence = new HashMap<>();
     private final long timestamp;
@@ -92,6 +94,32 @@ public class PhinderReport {
         perFileWordCounts.put(filePath, wordCount);
     }
 
+    /**
+     * The Risk Score across every file scanned. Unlike the Magnitude Score, this accounts for how
+     * sensitive each entity type is and how confident the detector was. See {@link RiskScorer}.
+     */
+    public double getAggregateRiskScore() {
+        return RiskScorer.score(aggregateCounts, severities, aggregateConfidence);
+    }
+
+    /** The band {@link #getAggregateRiskScore()} falls into. */
+    public RiskScorer.RiskLevel getAggregateRiskLevel() {
+        return RiskScorer.RiskLevel.of(getAggregateRiskScore());
+    }
+
+    /** The Risk Score for a single file. See {@link RiskScorer}. */
+    public double getFileRiskScore(final String filePath) {
+        return RiskScorer.score(
+                perFileCounts.getOrDefault(filePath, Collections.emptyMap()),
+                severities,
+                perFileConfidence.get(filePath));
+    }
+
+    /** The band {@link #getFileRiskScore(String)} falls into. */
+    public RiskScorer.RiskLevel getFileRiskLevel(final String filePath) {
+        return RiskScorer.RiskLevel.of(getFileRiskScore(filePath));
+    }
+
     public double getAggregateMagnitudeScore() {
         return calculateMagnitudeScore(aggregateCounts);
     }
@@ -149,6 +177,30 @@ public class PhinderReport {
 
     public Map<String, Double> getWeights() {
         return weights;
+    }
+
+    /** Override the risk severity of an entity type, replacing the built-in default. */
+    public void setSeverity(final String piiType, final double severity) {
+        severities.put(piiType, severity);
+    }
+
+    /** The severity of an entity type, falling back to the built-in default. */
+    public double getSeverity(final String piiType) {
+        return severities.getOrDefault(piiType, RiskScorer.defaultSeverity(piiType));
+    }
+
+    /** Only the severities explicitly overridden for this report, not the built-in defaults. */
+    public Map<String, Double> getSeverityOverrides() {
+        return severities;
+    }
+
+    /** The severity actually in effect for each entity type the scan found. */
+    public Map<String, Double> getEffectiveSeverities() {
+        final Map<String, Double> effective = new HashMap<>();
+        for (final String type : aggregateCounts.keySet()) {
+            effective.put(type, getSeverity(type));
+        }
+        return effective;
     }
 
     public long getTimestamp() {

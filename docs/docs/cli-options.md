@@ -8,7 +8,11 @@ Phinder is a command-line application. Below is a list of all available options.
 | `-R`   | `--recursive`      | Recursively traverse subdirectories if directories are provided.                       |
 | `-p`   | `--policy`         | Path to a custom Phileas policy (JSON file).                                           |
 |        | `--emit-policy`    | Write a starter redaction policy covering the entity types found, to the given file. Emits PhiSQL for a `.phisql` file, otherwise JSON. |
-| `-w`   | `--weights`        | Path to custom PII weights (JSON file).                                                |
+| `-w`   | `--weights`        | Path to custom PII weights (JSON file) used for the Magnitude Score.                   |
+|        | `--severities`     | Path to custom PII risk severities (JSON file) used for the Risk Score.                |
+|        | `--sort-by`        | Order the per-file report sections by `risk`, `magnitude`, `density`, or `name`. (Default: `risk`) |
+|        | `--min-risk`       | Omit files scoring below this Risk Score from the per-file report sections. Aggregate totals still cover the whole scan. (Default: `0`) |
+|        | `--top`            | How many files to list as candidates for redaction testing. (Default: `20`)            |
 | `-l`   | `--log`            | Enable the scan log using a MongoDB database.                                         |
 | `-s`   | `--skip-unchanged` | Skip scanning files that haven't changed since the last scan log.                      |
 |        | `--clean`          | Truncate the scan log database.                                                        |
@@ -30,6 +34,18 @@ java -jar phinder.jar -i file1.txt -i file2.docx
 
 ```bash
 java -jar phinder.jar -i my_docs/ -R -w weights.json
+```
+
+### Prioritize the riskiest files
+
+```bash
+java -jar phinder.jar -i my_docs/ -R --sort-by risk --min-risk 50 --top 10
+```
+
+### Scan with custom risk severities
+
+```bash
+java -jar phinder.jar -i my_docs/ -R --severities my-severities.json
 ```
 
 ### Generate a starter redaction policy from a scan

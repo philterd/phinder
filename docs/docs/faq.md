@@ -29,10 +29,19 @@ Yes, Phinder can scan a single file or an entire directory. Use the `-R` or `--r
 
 Phinder is designed for high performance. Large log files are processed line-by-line to minimize memory usage, and other formats are handled efficiently using specialized processors.
 
-### What are Magnitude and Density scores?
+### What are the Risk, Magnitude, and Density scores?
 
+- **Risk Score**: How sensitive the PII in a document is. It combines the severity of each entity type, how many occurrences were found, and how confident the detector was, and is reported with a risk level from `NONE` to `CRITICAL`. Use it to decide what to remediate first. See [Risk Scoring](configuration/risk-scoring.md).
 - **Magnitude Score**: A weighted score representing the total amount of PII found in a document. You can customize the weights for different PII types.
 - **Density Score**: The ratio of PII findings to the total amount of text in the document.
+
+### Why does a file with less PII sometimes have a higher Risk Score?
+
+Because the Risk Score measures sensitivity rather than volume. Two Social Security numbers outrank fifty city names. The Magnitude Score is the one that answers "how much PII is in here"; the two are calculated and configured independently, so tuning one does not move the other.
+
+### Does the Risk Score tell me whether I am compliant?
+
+No. It is a prioritization aid built from the entity types a scan found. It does not know how a file is stored, who can read it, or whether the detections are correct: detection is probabilistic, so a scan may both miss PII and flag text that is not PII. Review the findings against your own data before acting on the ranking.
 
 ### How can I speed up subsequent scans?
 

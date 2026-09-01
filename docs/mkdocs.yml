@@ -14,6 +14,7 @@ nav:
   - Configuration:
       - Phileas Policy: configuration/policy.md
       - Magnitude Score Weights: configuration/weights.md
+      - Risk Scoring: configuration/risk-scoring.md
   - Reports: reports.md
   - CLI Options: cli-options.md
   - FAQ: faq.md
