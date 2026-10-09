@@ -6,6 +6,8 @@ The goal of Phinder is to provide a comprehensive analysis of PII to help you ta
 
 Visit http://philterd.github.io/phinder for documentation and more information.
 
+Have questions or want to get involved? Users and developers are welcome to [join the Philterd Slack workspace](https://philterd.ai/slack/).
+
 ## Example Generated Report
 
 ![Phinder](docs/report.png)
