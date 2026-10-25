@@ -101,9 +101,9 @@ public class StarterPolicyGeneratorTest {
         // Guards against a forgotten or stray type relative to what Phinder's default policy detects.
         final Set<String> expected = Set.of(
                 "age", "bank-routing-number", "bitcoin-address", "city", "county", "credit-card",
-                "currency", "date", "drivers-license-number", "email-address", "first-name",
-                "hospital", "iban-code", "ip-address", "mac-address", "medical-condition",
-                "passport-number", "phone-number", "phone-number-extension", "physician-name",
+                "currency", "date", "drivers-license-number", "ein", "email-address", "first-name",
+                "hospital", "iban-code", "ip-address", "mac-address",
+                "passport-number", "phone-number", "phone-number-extension",
                 "ssn", "state", "state-abbreviation", "street-address", "surname",
                 "tracking-number", "url", "vin", "zip-code");
         assertEquals(expected, StarterPolicyGenerator.supportedTypes());

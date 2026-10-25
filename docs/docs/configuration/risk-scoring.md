@@ -37,8 +37,8 @@ Severities are ordinal judgements about how much damage one leaked value does, n
 | Severity | Entity types |
 |----------|--------------|
 | 10.0 | `bank-routing-number`, `credit-card`, `drivers-license-number`, `iban-code`, `passport-number`, `ssn` |
-| 8.0 | `bitcoin-address`, `medical-condition` |
-| 5.0 | `email-address`, `id`, `person`, `pheye`, `phone-number`, `physician-name`, `street-address`, `vin` |
+| 8.0 | `bitcoin-address` |
+| 5.0 | `ein`, `email-address`, `id`, `person`, `pheye`, `phone-number`, `street-address`, `vin` |
 | 3.0 | `age`, `custom-dictionary`, `first-name`, `ip-address`, `surname` |
 | 2.0 | `date`, `hospital`, `hospital-abbreviation`, `mac-address`, `phone-number-extension`, `tracking-number`, `zip-code` |
 | 1.0 | `city`, `county`, `currency`, `other`, `section`, `state`, `state-abbreviation`, `url` |
@@ -51,7 +51,7 @@ Pass a JSON object mapping entity types to severities with `--severities`. Types
 
 ```json
 {
-  "medical-condition": 10.0,
+  "email-address": 10.0,
   "first-name": 5.0,
   "url": 0.5
 }

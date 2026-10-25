@@ -190,17 +190,16 @@ public final class StarterPolicyGenerator {
         m.put(FilterType.CURRENCY.getType(), "CURRENCY");
         m.put(FilterType.DATE.getType(), "DATE");
         m.put(FilterType.DRIVERS_LICENSE_NUMBER.getType(), "DRIVERS_LICENSE");
+        m.put(FilterType.EIN.getType(), "EIN");
         m.put(FilterType.EMAIL_ADDRESS.getType(), "EMAIL_ADDRESS");
         m.put(FilterType.FIRST_NAME.getType(), "FIRST_NAME");
         m.put(FilterType.HOSPITAL.getType(), "HOSPITAL");
         m.put(FilterType.IBAN_CODE.getType(), "IBAN_CODE");
         m.put(FilterType.IP_ADDRESS.getType(), "IP_ADDRESS");
         m.put(FilterType.MAC_ADDRESS.getType(), "MAC_ADDRESS");
-        m.put(FilterType.MEDICAL_CONDITION.getType(), "MEDICAL_CONDITION");
         m.put(FilterType.PASSPORT_NUMBER.getType(), "PASSPORT_NUMBER");
         m.put(FilterType.PHONE_NUMBER.getType(), "PHONE_NUMBER");
         m.put(FilterType.PHONE_NUMBER_EXTENSION.getType(), "PHONE_NUMBER_EXTENSION");
-        m.put(FilterType.PHYSICIAN_NAME.getType(), "PHYSICIAN_NAME");
         m.put(FilterType.SSN.getType(), "SSN");
         m.put(FilterType.LOCATION_STATE.getType(), "STATE");
         m.put(FilterType.STATE_ABBREVIATION.getType(), "STATE_ABBREVIATION");
@@ -288,6 +287,13 @@ public final class StarterPolicyGenerator {
             f.setDriversLicenseFilterStrategies(redact(s));
             id.setDriversLicense(f);
         });
+        m.put(FilterType.EIN.getType(), id -> {
+            final Ein f = new Ein();
+            final EinFilterStrategy s = new EinFilterStrategy();
+            s.setStrategy("REDACT");
+            f.setEinFilterStrategies(redact(s));
+            id.setEin(f);
+        });
         m.put(FilterType.EMAIL_ADDRESS.getType(), id -> {
             final EmailAddress f = new EmailAddress();
             final EmailAddressFilterStrategy s = new EmailAddressFilterStrategy();
@@ -332,13 +338,6 @@ public final class StarterPolicyGenerator {
             f.setMacAddressFilterStrategies(redact(s));
             id.setMacAddress(f);
         });
-        m.put(FilterType.MEDICAL_CONDITION.getType(), id -> {
-            final MedicalCondition f = new MedicalCondition();
-            final MedicalConditionFilterStrategy s = new MedicalConditionFilterStrategy();
-            s.setStrategy("REDACT");
-            f.setMedicalConditionFilterStrategies(redact(s));
-            id.setMedicalCondition(f);
-        });
         m.put(FilterType.PASSPORT_NUMBER.getType(), id -> {
             final PassportNumber f = new PassportNumber();
             final PassportNumberFilterStrategy s = new PassportNumberFilterStrategy();
@@ -359,13 +358,6 @@ public final class StarterPolicyGenerator {
             s.setStrategy("REDACT");
             f.setPhoneNumberExtensionFilterStrategies(redact(s));
             id.setPhoneNumberExtension(f);
-        });
-        m.put(FilterType.PHYSICIAN_NAME.getType(), id -> {
-            final PhysicianName f = new PhysicianName();
-            final PhysicianNameFilterStrategy s = new PhysicianNameFilterStrategy();
-            s.setStrategy("REDACT");
-            f.setPhysicianNameFilterStrategies(redact(s));
-            id.setPhysicianName(f);
         });
         m.put(FilterType.SSN.getType(), id -> {
             final Ssn f = new Ssn();

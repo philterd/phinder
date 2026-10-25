@@ -503,6 +503,12 @@ public class Phinder implements Callable<Integer> {
         driversLicense.setDriversLicenseFilterStrategies(Collections.singletonList(driversLicenseFilterStrategy));
         identifiers.setDriversLicense(driversLicense);
 
+        final Ein ein = new Ein();
+        final EinFilterStrategy einFilterStrategy = new EinFilterStrategy();
+        einFilterStrategy.setStrategy("REDACT");
+        ein.setEinFilterStrategies(Collections.singletonList(einFilterStrategy));
+        identifiers.setEin(ein);
+
         final EmailAddress emailAddress = new EmailAddress();
         final EmailAddressFilterStrategy emailAddressFilterStrategy = new EmailAddressFilterStrategy();
         emailAddressFilterStrategy.setStrategy("REDACT");
@@ -539,12 +545,6 @@ public class Phinder implements Callable<Integer> {
         macAddress.setMacAddressFilterStrategies(Collections.singletonList(macAddressFilterStrategy));
         identifiers.setMacAddress(macAddress);
 
-        final MedicalCondition medicalCondition = new MedicalCondition();
-        final MedicalConditionFilterStrategy medicalConditionFilterStrategy = new MedicalConditionFilterStrategy();
-        medicalConditionFilterStrategy.setStrategy("REDACT");
-        medicalCondition.setMedicalConditionFilterStrategies(Collections.singletonList(medicalConditionFilterStrategy));
-        identifiers.setMedicalCondition(medicalCondition);
-
         final PassportNumber passportNumber = new PassportNumber();
         final PassportNumberFilterStrategy passportNumberFilterStrategy = new PassportNumberFilterStrategy();
         passportNumberFilterStrategy.setStrategy("REDACT");
@@ -568,12 +568,6 @@ public class Phinder implements Callable<Integer> {
         phoneNumberExtensionFilterStrategy.setStrategy("REDACT");
         phoneNumberExtension.setPhoneNumberExtensionFilterStrategies(Collections.singletonList(phoneNumberExtensionFilterStrategy));
         identifiers.setPhoneNumberExtension(phoneNumberExtension);
-
-        final PhysicianName physicianName = new PhysicianName();
-        final PhysicianNameFilterStrategy physicianNameFilterStrategy = new PhysicianNameFilterStrategy();
-        physicianNameFilterStrategy.setStrategy("REDACT");
-        physicianName.setPhysicianNameFilterStrategies(Collections.singletonList(physicianNameFilterStrategy));
-        identifiers.setPhysicianName(physicianName);
 
         final Ssn ssn = new Ssn();
         final SsnFilterStrategy ssnFilterStrategy = new SsnFilterStrategy();

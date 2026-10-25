@@ -194,17 +194,16 @@ public final class RiskScorer {
         m.put(FilterType.DRIVERS_LICENSE_NUMBER.getType(), CRITICAL);
 
         // Sensitive enough to identify or harm a person with little other context.
-        m.put(FilterType.MEDICAL_CONDITION.getType(), HIGH);
         m.put(FilterType.BITCOIN_ADDRESS.getType(), HIGH);
 
         // Contact or quasi-identifying detail; identifying in combination.
+        m.put(FilterType.EIN.getType(), ELEVATED);
         m.put(FilterType.EMAIL_ADDRESS.getType(), ELEVATED);
         m.put(FilterType.PHONE_NUMBER.getType(), ELEVATED);
         m.put(FilterType.STREET_ADDRESS.getType(), ELEVATED);
         m.put(FilterType.IDENTIFIER.getType(), ELEVATED);
         m.put(FilterType.PERSON.getType(), ELEVATED);
         m.put(FilterType.PH_EYE.getType(), ELEVATED);
-        m.put(FilterType.PHYSICIAN_NAME.getType(), ELEVATED);
         m.put(FilterType.VIN.getType(), ELEVATED);
 
         // Narrows a population but rarely identifies anyone alone.

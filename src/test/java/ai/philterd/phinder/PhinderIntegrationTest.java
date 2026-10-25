@@ -63,8 +63,7 @@ public class PhinderIntegrationTest {
         // assertNotNull(policy.getIdentifiers().getPerson());
         assertNotNull(policy.getIdentifiers().getFirstName());
         assertNotNull(policy.getIdentifiers().getIbanCode());
-        assertNotNull(policy.getIdentifiers().getMedicalCondition());
-        assertNotNull(policy.getIdentifiers().getPhysicianName());
+        assertNotNull(policy.getIdentifiers().getEin());
     }
 
     @Test
